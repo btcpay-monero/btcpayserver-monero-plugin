@@ -1,3 +1,8 @@
+<div align="center">
+  ![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/btcpay-monero/btcpayserver-monero-plugin/build.yml?branch=master)
+  [![Matrix rooms](https://img.shields.io/badge/%F0%9F%92%AC%20Matrix-%23btcpay--monero-blue)](https://matrix.to/#/#btcpay-monero:matrix.org)
+</div>
+
 # Monero support plugin
 
 This plugin extends BTCPay Server to enable users to receive payments via Monero.
