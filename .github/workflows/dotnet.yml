@@ -1,4 +1,4 @@
-name: Build
+name: Build and Test
 
 on:
   push:
@@ -11,15 +11,37 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    env:
+      CI: true
+      
     steps:
+
     - uses: actions/checkout@v4
       with:
-        submodules: recursive      
+        submodules: recursive
+        
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: 8.0.x
+
     - name: Restore dependencies
       run: dotnet restore
-    - name: Build
+
+    - name: Build projects
       run: dotnet build --no-restore
+  
+    - name: Install Playwright browsers
+      run: |
+        dotnet tool install --global Microsoft.Playwright.CLI
+        export PATH="$PATH:$HOME/.dotnet/tools"
+        playwright install --with-deps
+    
+    - name: Start containers
+      run: docker compose -f docker-compose.yml up -d dev
+
+    - name: Run integration tests
+      run: dotnet test BTCPayServer.Plugins.Tests --verbosity normal
+
+    - name: Cleanup Docker
+      run: docker compose -f docker-compose.yml down --volumes

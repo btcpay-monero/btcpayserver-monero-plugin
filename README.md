@@ -4,14 +4,16 @@
   [![Matrix rooms](https://img.shields.io/badge/%F0%9F%92%AC%20Matrix-%23btcpay--monero-blue)](https://matrix.to/#/#btcpay-monero:matrix.org)
 </div>
 
-# Monero support plugin
+# Monero BTCPay Server plugin
 
 This plugin extends BTCPay Server to enable users to receive payments via Monero.
 
 > [!WARNING]
 > This plugin shares a single Monero wallet across all the stores in the BTCPay Server instance. Use this plugin only if you are not sharing your instance.
 
-![Checkout](./img/Checkout.png)
+<p align="center">
+  <img src="./img/Checkout.png" alt="Checkout">
+</p>
 
 ## Configuration
 
