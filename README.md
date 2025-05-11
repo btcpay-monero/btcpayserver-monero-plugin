@@ -31,6 +31,16 @@ BTCPay Server's Docker deployment simplifies the setup by automatically configur
 
 # For maintainers
 
+## Building and testing
+To build and run unit tests, run the following commands:
+
+```bash
+dotnet build btcpay-monero-plugin.sln
+dotnet test BTCPayServer.Plugins.UnitTests --verbosity normal
+```
+This will build the plugin and run the unit tests.
+
+
 If you are a developer maintaining this plugin, in order to maintain this plugin, you need to clone this repository with `--recurse-submodules`:
 ```bash
 git clone --recurse-submodules https://github.com/btcpayserver/btcpayserver-monero-plugin

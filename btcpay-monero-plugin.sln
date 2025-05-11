@@ -37,6 +37,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Misc", "Misc", "{BDB6EEEA-4
 		README.md = README.md
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BTCPayServer.Plugins.Monero.UnitTests", "BTCPayServer.Plugins.Monero.UnitTests\BTCPayServer.Plugins.UnitTests.csproj", "{BC95362E-D430-4CB4-B888-EE1C054C1E7A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -82,6 +84,10 @@ Global
 		{319C8C91-952F-4CF6-A251-058DFC66D70F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{319C8C91-952F-4CF6-A251-058DFC66D70F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{319C8C91-952F-4CF6-A251-058DFC66D70F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BC95362E-D430-4CB4-B888-EE1C054C1E7A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BC95362E-D430-4CB4-B888-EE1C054C1E7A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BC95362E-D430-4CB4-B888-EE1C054C1E7A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BC95362E-D430-4CB4-B888-EE1C054C1E7A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{049FC011-1952-4140-9652-12921C106B02} = {891F21E0-262C-4430-90C5-7A540AD7C9AD}
