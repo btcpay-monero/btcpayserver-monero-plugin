@@ -43,17 +43,9 @@ jobs:
     - name: Run unit tests
       run: dotnet test BTCPayServer.Plugins.Monero.UnitTests --verbosity normal
 
-    - name: Install Playwright browsers
-      run: |
-        dotnet tool install --global Microsoft.Playwright.CLI
-        export PATH="$PATH:$HOME/.dotnet/tools"
-        playwright install --with-deps
-    
-    - name: Start containers
-      run: docker compose -f docker-compose.yml up -d dev
-
     - name: Run integration tests
-      run: dotnet test BTCPayServer.Plugins.Tests --verbosity normal
+      run: docker compose -f BTCPayServer.Plugins.IntegrationTests/docker-compose.yml run tests
 
-    - name: Cleanup Docker
-      run: docker compose -f docker-compose.yml down --volumes
+    - name: Cleanup Docker containers
+      if: always()
+      run: docker compose -f BTCPayServer.Plugins.IntegrationTests/docker-compose.yml down -v

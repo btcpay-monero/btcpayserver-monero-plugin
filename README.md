@@ -57,7 +57,7 @@ Then create the `appsettings.dev.json` file in `btcpayserver/BTCPayServer`, with
   "DEBUG_PLUGINS": "..\\..\\Plugins\\Monero\\bin\\Debug\\net8.0\\BTCPayServer.Plugins.Monero.dll",
   "XMR_DAEMON_URI": "http://127.0.0.1:18081",
   "XMR_WALLET_DAEMON_URI": "http://127.0.0.1:18082",
-  "XMR_CASHCOW_WALLET_DAEMON_URI": "http://127.0.0.1:18092",
+  "XMR_CASHCOW_WALLET_DAEMON_URI": "http://127.0.0.1:18092"
 }
 ```
 This will ensure that BTCPay Server loads the plugin when it starts.

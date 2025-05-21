@@ -51,6 +51,12 @@
   -->
 
   <ItemGroup>
+    <None Update="BTCPayServer.Plugins.Monero.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\btcpayserver\BTCPayServer\BTCPayServer.csproj" />
   </ItemGroup>
   <ItemGroup>
