@@ -36,7 +36,7 @@ To build and run unit tests, run the following commands:
 
 ```bash
 dotnet build btcpay-monero-plugin.sln
-dotnet test BTCPayServer.Plugins.UnitTests --verbosity normal
+dotnet test BTCPayServer.Plugins.Monero.UnitTests --verbosity normal
 ```
 This will build the plugin and run the unit tests.
 

@@ -25,7 +25,10 @@
       <ExcludeAssets>runtime;native;build;buildTransitive;contentFiles</ExcludeAssets>
     </ProjectReference>
   </ItemDefinitionGroup>
-
+  
+  <ItemGroup>
+      <InternalsVisibleTo Include="BTCPayServer.Plugins.Monero.UnitTests" />
+  </ItemGroup>
 
   <!-- If you need Entity Framework, you can uncomment this. This will make it usable in your project without publishing assemblies
   already referenced by BTCPay Server Core project -->

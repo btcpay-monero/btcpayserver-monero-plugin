@@ -1,3 +1,4 @@
+using System.Linq;
 namespace BTCPayServer.Plugins.Monero.RPC
 {
     public class MoneroEvent
@@ -8,8 +9,12 @@ namespace BTCPayServer.Plugins.Monero.RPC
 
         public override string ToString()
         {
-            return
-                $"{CryptoCode}: {(string.IsNullOrEmpty(TransactionHash) ? string.Empty : "Tx Update")}{(string.IsNullOrEmpty(BlockHash) ? string.Empty : "New Block")} ({TransactionHash ?? string.Empty}{BlockHash ?? string.Empty})";
+            var txUpdate = string.IsNullOrEmpty(TransactionHash) ? string.Empty : "Tx Update";
+            var newBlock = string.IsNullOrEmpty(BlockHash) ? string.Empty : "New Block";
+
+            var eventDescription = string.Join(" ", new[] { txUpdate, newBlock }.Where(desc => !string.IsNullOrEmpty(desc)));
+
+            return $"{CryptoCode}: {eventDescription} ({TransactionHash ?? string.Empty}{BlockHash ?? string.Empty})";
         }
     }
 }

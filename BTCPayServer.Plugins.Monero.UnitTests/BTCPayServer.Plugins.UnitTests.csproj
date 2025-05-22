@@ -5,6 +5,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <IsPackable>false</IsPackable>
+        <AssemblyName>BTCPayServer.Plugins.Monero.UnitTests</AssemblyName>
     </PropertyGroup>
 
     <ItemGroup>
