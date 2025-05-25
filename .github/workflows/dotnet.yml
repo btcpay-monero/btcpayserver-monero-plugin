@@ -41,7 +41,7 @@ jobs:
       run: dotnet build --no-restore
 
     - name: Run unit tests
-      run: dotnet test BTCPayServer.Plugins.Monero.UnitTests --verbosity normal
+      run: dotnet test BTCPayServer.Plugins.Monero.UnitTests/BTCPayServer.Plugins.UnitTests.csproj /p:CollectCoverage=true /p:CoverletOutputFormat=json /p:CoverletOutput=../coverage/coverage.json 
 
     - name: Run integration tests
       run: docker compose -f BTCPayServer.Plugins.IntegrationTests/docker-compose.yml run tests
@@ -49,3 +49,9 @@ jobs:
     - name: Cleanup Docker containers
       if: always()
       run: docker compose -f BTCPayServer.Plugins.IntegrationTests/docker-compose.yml down -v
+
+    - name: Upload coverage report
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: coverage/coverage.cobertura.xml

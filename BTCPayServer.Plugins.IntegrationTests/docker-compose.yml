@@ -19,6 +19,8 @@ services:
       - xmr_wallet
     extra_hosts:
       - "tests:127.0.0.1"
+    volumes:
+      - ../coverage:/coverage
 
   # The dev container is not used, it is just handy to run `docker-compose up dev` to start all services
   dev:
