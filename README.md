@@ -65,6 +65,8 @@ Then run the tests dependencies
 docker-compose up -d dev
 ```
 
+For vscode, open the `launch.json` file in the `.vscode` folder and set the `launchSettingsProfile` to `Altcoins-HTTPS`.
+
 Then create the `appsettings.dev.json` file in `btcpayserver/BTCPayServer`, with the following content:
 
 ```json

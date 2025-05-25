@@ -6,6 +6,7 @@ on:
       - Build and Test
     types:
       - completed
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -18,9 +19,8 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: coverage-report
-          path: ./coverage
       - name: Run codacy-coverage-reporter
         uses: codacy/codacy-coverage-reporter-action@v1.3.0
         with:
           project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
-          coverage-reports: ./coverage/coverage.cobertura.xml
+          coverage-reports: coverage.cobertura.xml
