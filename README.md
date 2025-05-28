@@ -34,6 +34,31 @@ BTCPay Server's Docker deployment simplifies the setup by automatically configur
 # For maintainers
 
 ## Building and testing
+
+## 🧑‍💻 Local Development Setup
+If you're contributing to this plugin or running a local development instance of BTCPay Server with the Monero plugin, follow these steps.
+## 1) Requirements
+
+- .NET 8.0 SDK or later
+- JetBrains Rider (recommended) or Visual Studio Code with C# support
+- Git
+- Docker and Docker Compose
+
+## 2) Clone the Repositories
+Create a working directory and clone both the BTCPay Server and Monero plugin repositories side by side:
+If you are a developer maintaining this plugin, in order to maintain this plugin, you need to clone this repository with `--recurse-submodules`:
+
+```bash
+git clone https://github.com/btcpayserver/btcpayserver
+git clone --recurse-submodules https://github.com/btcpay-monero/btcpayserver-monero-plugin
+```
+## 3. Build the Plugin
+Navigate to the plugin directory and restore/build the solution:
+```bash 
+cd btcpayserver-monero-plugin
+dotnet restore
+dotnet build btcpay-monero-plugin.sln
+```
 To build and run unit tests, run the following commands:
 
 ```bash
@@ -55,15 +80,7 @@ docker compose -f BTCPayServer.Plugins.IntegrationTests/docker-compose.yml run t
 
 **BTCPAY_XMR_CASHCOW_WALLET_DAEMON_URI** | **Optional**. The URI of the [monero-wallet-rpc](https://getmonero.dev/interacting/monero-wallet-rpc.html) interface for the cashcow wallet. This is used to create a second wallet for testing purposes in regtest mode. | http://
 
-
-If you are a developer maintaining this plugin, in order to maintain this plugin, you need to clone this repository with `--recurse-submodules`:
-```bash
-git clone --recurse-submodules https://github.com/btcpayserver/btcpayserver-monero-plugin
-```
-Then run the tests dependencies
-```bash
-docker-compose up -d dev
-```
+## 4. Configure BTCPay Server to Load the Plugin
 
 For vscode, open the `launch.json` file in the `.vscode` folder and set the `launchSettingsProfile` to `Altcoins-HTTPS`.
 
@@ -79,8 +96,11 @@ Then create the `appsettings.dev.json` file in `btcpayserver/BTCPayServer`, with
 ```
 This will ensure that BTCPay Server loads the plugin when it starts.
 
+## 5. Start Development Environment
+
 Then start the development dependencies via docker-compose:
 ```bash
+cd BTCPayServer.Plugins.IntegrationTests/
 docker-compose up -d dev
 ```
 
