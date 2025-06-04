@@ -9,8 +9,8 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0"/>
-        <PackageReference Include="Microsoft.Playwright" Version="1.51.0"/>
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1"/>
+        <PackageReference Include="Microsoft.Playwright" Version="1.52.0"/>
         <PackageReference Include="xunit" Version="2.9.3"/>
         <PackageReference Include="xunit.runner.visualstudio" Version="3.1.0">
             <PrivateAssets>all</PrivateAssets>
@@ -27,8 +27,8 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\btcpayserver\BTCPayServer.Abstractions\BTCPayServer.Abstractions.csproj"/>
-        <ProjectReference Include="..\btcpayserver\BTCPayServer.Tests\BTCPayServer.Tests.csproj"/>
+        <ProjectReference Include="..\submodules\btcpayserver\BTCPayServer.Abstractions\BTCPayServer.Abstractions.csproj"/>
+        <ProjectReference Include="..\submodules\btcpayserver\BTCPayServer.Tests\BTCPayServer.Tests.csproj"/>
     </ItemGroup>
 
     <ItemDefinitionGroup>

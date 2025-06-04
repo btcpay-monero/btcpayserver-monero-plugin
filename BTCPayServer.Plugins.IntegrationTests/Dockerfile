@@ -4,22 +4,22 @@ RUN apt-get update && apt-get install -y --no-install-recommends chromium-driver
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /source
-COPY ../btcpayserver/nuget.config nuget.config
-COPY ../btcpayserver/Build/Common.csproj Build/Common.csproj
-COPY ../btcpayserver/BTCPayServer.Abstractions/BTCPayServer.Abstractions.csproj BTCPayServer.Abstractions/BTCPayServer.Abstractions.csproj
-COPY ../btcpayserver/BTCPayServer/BTCPayServer.csproj BTCPayServer/BTCPayServer.csproj
-COPY ../btcpayserver/BTCPayServer.Common/BTCPayServer.Common.csproj BTCPayServer.Common/BTCPayServer.Common.csproj
-COPY ../btcpayserver/BTCPayServer.Rating/BTCPayServer.Rating.csproj BTCPayServer.Rating/BTCPayServer.Rating.csproj
-COPY ../btcpayserver/BTCPayServer.Data/BTCPayServer.Data.csproj BTCPayServer.Data/BTCPayServer.Data.csproj
-COPY ../btcpayserver/BTCPayServer.Client/BTCPayServer.Client.csproj BTCPayServer.Client/BTCPayServer.Client.csproj
+COPY ../submodules/btcpayserver/nuget.config nuget.config
+COPY ../submodules/btcpayserver/Build/Common.csproj Build/Common.csproj
+COPY ../submodules/btcpayserver/BTCPayServer.Abstractions/BTCPayServer.Abstractions.csproj BTCPayServer.Abstractions/BTCPayServer.Abstractions.csproj
+COPY ../submodules/btcpayserver/BTCPayServer/BTCPayServer.csproj BTCPayServer/BTCPayServer.csproj
+COPY ../submodules/btcpayserver/BTCPayServer.Common/BTCPayServer.Common.csproj BTCPayServer.Common/BTCPayServer.Common.csproj
+COPY ../submodules/btcpayserver/BTCPayServer.Rating/BTCPayServer.Rating.csproj BTCPayServer.Rating/BTCPayServer.Rating.csproj
+COPY ../submodules/btcpayserver/BTCPayServer.Data/BTCPayServer.Data.csproj BTCPayServer.Data/BTCPayServer.Data.csproj
+COPY ../submodules/btcpayserver/BTCPayServer.Client/BTCPayServer.Client.csproj BTCPayServer.Client/BTCPayServer.Client.csproj
 RUN cd BTCPayServer && dotnet restore
-COPY ../btcpayserver/BTCPayServer.Common/. BTCPayServer.Common/.
-COPY ../btcpayserver/BTCPayServer.Rating/. BTCPayServer.Rating/.
-COPY ../btcpayserver/BTCPayServer.Data/. BTCPayServer.Data/.
-COPY ../btcpayserver/BTCPayServer.Client/. BTCPayServer.Client/.
-COPY ../btcpayserver/BTCPayServer.Abstractions/. BTCPayServer.Abstractions/.
-COPY ../btcpayserver/BTCPayServer/. BTCPayServer/.
-COPY ../btcpayserver/Build/Version.csproj Build/Version.csproj
+COPY ../submodules/btcpayserver/BTCPayServer.Common/. BTCPayServer.Common/.
+COPY ../submodules/btcpayserver/BTCPayServer.Rating/. BTCPayServer.Rating/.
+COPY ../submodules/btcpayserver/BTCPayServer.Data/. BTCPayServer.Data/.
+COPY ../submodules/btcpayserver/BTCPayServer.Client/. BTCPayServer.Client/.
+COPY ../submodules/btcpayserver/BTCPayServer.Abstractions/. BTCPayServer.Abstractions/.
+COPY ../submodules/btcpayserver/BTCPayServer/. BTCPayServer/.
+COPY ../submodules/btcpayserver/Build/Version.csproj Build/Version.csproj
 
 ENV SCREEN_HEIGHT 600 \
     SCREEN_WIDTH 1200

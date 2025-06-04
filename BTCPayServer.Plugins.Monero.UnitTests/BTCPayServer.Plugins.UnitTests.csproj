@@ -30,7 +30,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\Plugins\Monero\BTCPayServer.Plugins.Monero.csproj" />
-        <ProjectReference Include="..\btcpayserver\BTCPayServer.Abstractions\BTCPayServer.Abstractions.csproj" />
+        <ProjectReference Include="..\submodules\btcpayserver\BTCPayServer.Abstractions\BTCPayServer.Abstractions.csproj" />
     </ItemGroup>
 
     <!-- This will make sure that referencing BTCPayServer doesn't put any artifact in the published directory -->
