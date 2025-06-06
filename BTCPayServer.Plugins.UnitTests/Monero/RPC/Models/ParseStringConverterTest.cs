@@ -1,11 +1,8 @@
-using System;
-using System.IO;
-using System.Globalization;
+using BTCPayServer.Plugins.Monero.RPC.Models;
 using Newtonsoft.Json;
 using Xunit;
-using BTCPayServer.Plugins.Monero.RPC.Models;
 
-namespace BTCPayServer.Plugins.Monero.UnitTests.RPC.Models
+namespace BTCPayServer.Plugins.UnitTests.Monero.RPC.Models
 {
     public class ParseStringConverterTests
     {

@@ -1,9 +1,8 @@
-using System;
-using Xunit;
-using BTCPayServer.Plugins.Monero.ViewModels;
 using BTCPayServer.Payments;
+using BTCPayServer.Plugins.Monero.ViewModels;
+using Xunit;
 
-namespace BTCPayServer.Plugins.Monero.UnitTests.ViewModels
+namespace BTCPayServer.Plugins.UnitTests.Monero.ViewModels
 {
     public class MoneroPaymentViewModelTests
     {

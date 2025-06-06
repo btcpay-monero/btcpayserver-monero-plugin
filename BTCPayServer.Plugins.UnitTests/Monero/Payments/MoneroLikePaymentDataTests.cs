@@ -1,7 +1,7 @@
 using BTCPayServer.Plugins.Monero.Payments;
 using Xunit;
 
-namespace BTCPayServer.Plugins.Monero.UnitTests.Payments
+namespace BTCPayServer.Plugins.UnitTests.Monero.Payments
 {
     public class MoneroLikePaymentDataTests
     {

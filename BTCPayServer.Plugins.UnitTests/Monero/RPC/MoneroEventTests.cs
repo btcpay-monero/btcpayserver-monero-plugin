@@ -1,7 +1,7 @@
 using BTCPayServer.Plugins.Monero.RPC;
 using Xunit;
 
-namespace BTCPayServer.Plugins.Monero.Tests.RPC
+namespace BTCPayServer.Plugins.UnitTests.Monero.RPC
 {
     public class MoneroEventTest
     {

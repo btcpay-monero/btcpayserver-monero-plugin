@@ -2,7 +2,7 @@ using System.Globalization;
 using Xunit;
 using BTCPayServer.Plugins.Monero.Utils;
 
-namespace BTCPayServer.Plugins.Monero.UnitTests.Utils
+namespace BTCPayServer.Plugins.UnitTests.Monero.Utils
 {
     public class MoneroMoneyTests
     {

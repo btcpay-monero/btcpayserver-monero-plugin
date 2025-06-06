@@ -4,7 +4,7 @@ using Newtonsoft.Json;
 
 namespace BTCPayServer.Plugins.Monero.RPC.Models
 {
-    internal class ParseStringConverter : JsonConverter
+    public class ParseStringConverter : JsonConverter
     {
         public override bool CanConvert(Type t) => t == typeof(long) || t == typeof(long?);
 

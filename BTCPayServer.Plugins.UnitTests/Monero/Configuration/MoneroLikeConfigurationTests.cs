@@ -1,7 +1,7 @@
 using BTCPayServer.Plugins.Monero.Configuration;
 using Xunit;
 
-namespace BTCPayServer.Plugins.Monero.UnitTests.Configuration
+namespace BTCPayServer.Plugins.UnitTests.Monero.Configuration
 {
     public class MoneroLikeConfigurationTests
     {

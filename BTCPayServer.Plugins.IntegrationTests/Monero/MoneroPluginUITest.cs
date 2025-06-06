@@ -2,7 +2,7 @@ using BTCPayServer.Tests;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace BTCPayServer.Plugins.IntegrationTests.MoneroPluginTests;
+namespace BTCPayServer.Plugins.IntegrationTests.Monero;
 
 public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroAndBitcoinIntegrationTestBase(helper)
 {

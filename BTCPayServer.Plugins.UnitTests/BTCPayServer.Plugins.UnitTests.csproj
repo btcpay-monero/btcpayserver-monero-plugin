@@ -5,7 +5,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <IsPackable>false</IsPackable>
-        <AssemblyName>BTCPayServer.Plugins.Monero.UnitTests</AssemblyName>
+        <AssemblyName>BTCPayServer.Plugins.UnitTests</AssemblyName>
         <CoverletOutput>$(MSBuildProjectDirectory)/coverage/</CoverletOutput>
         <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     </PropertyGroup>

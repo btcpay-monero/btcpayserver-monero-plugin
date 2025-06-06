@@ -11,21 +11,14 @@ on:
       
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
-    env:
-      CI: true
-      
     steps:
 
-    - uses: actions/checkout@v4
+    - name: Initialize and update submodules
+      uses: actions/checkout@v4
       with:
         submodules: recursive
         
-    - name: Initialize and update submodules
-      run: git submodule update --init --recursive
-
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
@@ -39,9 +32,12 @@ jobs:
       
     - name: Build projects
       run: dotnet build --no-restore
+      
+    - name: Install JetBrains dotCover CLI
+      run: dotnet tool install --global JetBrains.dotCover.CommandLineTools
 
     - name: Run unit tests
-      run: dotnet test BTCPayServer.Plugins.Monero.UnitTests/BTCPayServer.Plugins.UnitTests.csproj /p:CollectCoverage=true /p:CoverletOutputFormat=json /p:CoverletOutput=../coverage/coverage.json 
+      run: dotCover cover-dotnet --TargetArguments="test BTCPayServer.Plugins.UnitTests --no-build" --output=coverage/dotCover.UnitTests.output.dcvr --filters="-:Assembly=BTCPayServer.Plugins.UnitTests;-:Assembly=testhost;-:Assembly=BTCPayServer;-:Class=AspNetCoreGeneratedDocument.*"
 
     - name: Run integration tests
       run: docker compose -f BTCPayServer.Plugins.IntegrationTests/docker-compose.yml run tests
@@ -54,4 +50,4 @@ jobs:
       uses: actions/upload-artifact@v4.6.2
       with:
         name: coverage-report
-        path: coverage/coverage.cobertura.xml
+        path: coverage/dotcover.xml

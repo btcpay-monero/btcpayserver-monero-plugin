@@ -4,7 +4,6 @@
         <TargetFramework>net8.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-
         <IsPackable>false</IsPackable>
     </PropertyGroup>
 
@@ -29,6 +28,7 @@
     <ItemGroup>
         <ProjectReference Include="..\submodules\btcpayserver\BTCPayServer.Abstractions\BTCPayServer.Abstractions.csproj"/>
         <ProjectReference Include="..\submodules\btcpayserver\BTCPayServer.Tests\BTCPayServer.Tests.csproj"/>
+        <ProjectReference Include="..\Plugins\Monero\BTCPayServer.Plugins.Monero.csproj" />
     </ItemGroup>
 
     <ItemDefinitionGroup>
