@@ -8,6 +8,7 @@
     <Product>BTCPay Server: Monero support plugin</Product>
     <Description>This plugin extends BTCPay Server to enable users to receive payments via Monero.</Description>
     <Version>1.0.2</Version>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
   </PropertyGroup>
 
   <!-- Plugin development properties -->
@@ -15,6 +16,7 @@
     <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
     <PreserveCompilationContext>false</PreserveCompilationContext>
     <GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
+    <TargetFrameworkMonikerAssemblyAttributesPath>$([System.IO.Path]::Combine('$(IntermediateOutputPath)','$(TargetFrameworkMoniker).AssemblyAttributes$(DefaultLanguageSourceExtension)'))</TargetFrameworkMonikerAssemblyAttributesPath>
   </PropertyGroup>
 
   <!-- This will make sure that referencing BTCPayServer doesn't put any artifact in the published directory -->
@@ -25,9 +27,14 @@
       <ExcludeAssets>runtime;native;build;buildTransitive;contentFiles</ExcludeAssets>
     </ProjectReference>
   </ItemDefinitionGroup>
-  
+
+  <!-- Deterministic build -->
   <ItemGroup>
-      <InternalsVisibleTo Include="BTCPayServer.Plugins.Monero.UnitTests" />
+    <PackageReference Include="DotNet.ReproducibleBuilds" Version="1.2.25" PrivateAssets="All"/>
+    <PackageReference Include="DotNet.ReproducibleBuilds.Isolated" Version="1.2.25" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+    <EmbeddedFiles Include="$(GeneratedAssemblyInfoFile)"/>
   </ItemGroup>
 
   <!-- If you need Entity Framework, you can uncomment this. This will make it usable in your project without publishing assemblies
