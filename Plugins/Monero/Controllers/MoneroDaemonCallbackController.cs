@@ -1,5 +1,6 @@
 using BTCPayServer.Filters;
 using BTCPayServer.Plugins.Monero.RPC;
+
 using Microsoft.AspNetCore.Mvc;
 
 namespace BTCPayServer.Plugins.Monero.Controllers

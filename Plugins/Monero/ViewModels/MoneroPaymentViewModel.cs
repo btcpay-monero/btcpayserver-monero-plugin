@@ -1,4 +1,5 @@
 using System;
+
 using BTCPayServer.Payments;
 
 namespace BTCPayServer.Plugins.Monero.ViewModels

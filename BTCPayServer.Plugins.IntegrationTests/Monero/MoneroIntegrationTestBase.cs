@@ -1,5 +1,6 @@
-using Xunit.Abstractions;
 using BTCPayServer.Tests;
+
+using Xunit.Abstractions;
 
 namespace BTCPayServer.Plugins.IntegrationTests.Monero
 {

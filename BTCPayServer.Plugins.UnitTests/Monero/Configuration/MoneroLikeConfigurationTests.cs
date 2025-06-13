@@ -1,4 +1,5 @@
 using BTCPayServer.Plugins.Monero.Configuration;
+
 using Xunit;
 
 namespace BTCPayServer.Plugins.UnitTests.Monero.Configuration

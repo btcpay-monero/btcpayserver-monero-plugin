@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+
 using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Client.Models;
 using BTCPayServer.Payments;
@@ -25,12 +26,13 @@ namespace BTCPayServer.Plugins.Monero.Services
         {
             return _moneroRpcProvider.Summaries.Select(pair => new MoneroSyncStatus()
             {
-                Summary = pair.Value, PaymentMethodId = PaymentMethodId.Parse(pair.Key).ToString()
+                Summary = pair.Value,
+                PaymentMethodId = PaymentMethodId.Parse(pair.Key).ToString()
             });
         }
     }
 
-    public class MoneroSyncStatus: SyncStatus, ISyncStatus
+    public class MoneroSyncStatus : SyncStatus, ISyncStatus
     {
         public override bool Available
         {

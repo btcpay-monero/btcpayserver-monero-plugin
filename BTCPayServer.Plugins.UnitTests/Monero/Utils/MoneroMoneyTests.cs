@@ -1,6 +1,8 @@
 using System.Globalization;
-using Xunit;
+
 using BTCPayServer.Plugins.Monero.Utils;
+
+using Xunit;
 
 namespace BTCPayServer.Plugins.UnitTests.Monero.Utils
 {
@@ -29,7 +31,7 @@ namespace BTCPayServer.Plugins.UnitTests.Monero.Utils
             long result = MoneroMoney.Convert(monero);
             Assert.Equal(expectedPiconero, result);
         }
-        
+
         [Trait("Category", "Unit")]
         [Theory]
         [InlineData(1)]

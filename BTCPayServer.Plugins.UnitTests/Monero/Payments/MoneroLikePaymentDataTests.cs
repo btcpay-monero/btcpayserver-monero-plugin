@@ -1,4 +1,5 @@
 using BTCPayServer.Plugins.Monero.Payments;
+
 using Xunit;
 
 namespace BTCPayServer.Plugins.UnitTests.Monero.Payments

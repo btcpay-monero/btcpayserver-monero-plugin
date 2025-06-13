@@ -1,8 +1,10 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+
 using BTCPayServer.Logging;
 using BTCPayServer.Plugins.Monero.Configuration;
+
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -64,6 +66,7 @@ namespace BTCPayServer.Plugins.Monero.Services
         public Task StopAsync(CancellationToken cancellationToken)
         {
             _Cts?.Cancel();
+            _Cts?.Dispose();
             return Task.CompletedTask;
         }
     }

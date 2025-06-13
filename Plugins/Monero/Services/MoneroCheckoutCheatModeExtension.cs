@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Threading.Tasks;
+
 using BTCPayServer.Payments;
 using BTCPayServer.Plugins.Altcoins;
 using BTCPayServer.Plugins.Monero.RPC;
 using BTCPayServer.Plugins.Monero.RPC.Models;
+
 using NBitcoin;
 
 namespace BTCPayServer.Plugins.Monero.Services;
@@ -43,7 +45,8 @@ public class MoneroCheckoutCheatModeExtension : ICheckoutCheatModeExtension
                     Amount = (long)amount,
                     Address = payInvoiceContext.PaymentPrompt.Destination
                 }
-            }});
+            }
+            });
         return new ICheckoutCheatModeExtension.PayInvoiceResult(result.TransactionHash);
     }
 

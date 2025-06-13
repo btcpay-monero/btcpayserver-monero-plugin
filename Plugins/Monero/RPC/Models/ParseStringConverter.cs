@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+
 using Newtonsoft.Json;
 
 namespace BTCPayServer.Plugins.Monero.RPC.Models
@@ -11,7 +12,9 @@ namespace BTCPayServer.Plugins.Monero.RPC.Models
         public override object ReadJson(JsonReader reader, Type t, object existingValue, JsonSerializer serializer)
         {
             if (reader.TokenType == JsonToken.Null)
+            {
                 return null;
+            }
             var value = serializer.Deserialize<string>(reader);
             long l;
             if (Int64.TryParse(value, out l))

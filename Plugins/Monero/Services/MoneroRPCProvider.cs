@@ -4,12 +4,14 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
-using Amazon.Runtime;
+
 using BTCPayServer.Plugins.Monero.Configuration;
 using BTCPayServer.Plugins.Monero.RPC;
 using BTCPayServer.Plugins.Monero.RPC.Models;
 using BTCPayServer.Services;
+
 using Microsoft.Extensions.Logging;
+
 using NBitcoin;
 
 namespace BTCPayServer.Plugins.Monero.Services
@@ -57,8 +59,8 @@ namespace BTCPayServer.Plugins.Monero.Services
 
         public ImmutableDictionary<string, JsonRpcClient> CashCowWalletRpcClients { get; set; }
 
-		public bool IsConfigured(string cryptoCode) => WalletRpcClients.ContainsKey(cryptoCode) && DaemonRpcClients.ContainsKey(cryptoCode);
-		public bool IsAvailable(string cryptoCode)
+        public bool IsConfigured(string cryptoCode) => WalletRpcClients.ContainsKey(cryptoCode) && DaemonRpcClients.ContainsKey(cryptoCode);
+        public bool IsAvailable(string cryptoCode)
         {
             cryptoCode = cryptoCode.ToUpperInvariant();
             return _summaries.ContainsKey(cryptoCode) && IsAvailable(_summaries[cryptoCode]);
@@ -97,7 +99,7 @@ namespace BTCPayServer.Plugins.Monero.Services
             }
 
             bool walletCreated = false;
-            retry:
+        retry:
             try
             {
                 var walletResult =
@@ -152,7 +154,9 @@ namespace BTCPayServer.Plugins.Monero.Services
                 (await cashcow.SendCommandAsync<JsonRpcClient.NoRequestModel, GetBalanceResponse>("get_balance",
                     JsonRpcClient.NoRequestModel.Instance));
             if (balance.UnlockedBalance != 0)
+            {
                 return;
+            }
             _logger.LogInformation("Mining blocks for the cashcow...");
             var address = (await cashcow.SendCommandAsync<GetAddressRequest, GetAddressResponse>("get_address", new()
             {
@@ -165,7 +169,7 @@ namespace BTCPayServer.Plugins.Monero.Services
             });
             _logger.LogInformation("Mining succeed!");
         }
-    
+
         private static async Task CreateTestWallet(JsonRpcClient walletRpcClient)
         {
             try

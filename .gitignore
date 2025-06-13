@@ -5,3 +5,4 @@ Plugins/packed
 .vs/
 coverage
 nuget-packages
+**/.AssemblyAttributes

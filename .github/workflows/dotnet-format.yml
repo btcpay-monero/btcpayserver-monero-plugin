@@ -1,0 +1,32 @@
+name: Code format check
+
+on:
+  push:
+    branches:
+      - "master"
+  pull_request:
+    branches:
+      - "master"
+  workflow_dispatch:
+
+jobs:
+  lint:
+    runs-on: windows-latest
+    steps:
+
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Code format check
+        run: |
+          dotnet tool install -g dotnet-format
+          dotnet format btcpay-monero-plugin.sln --no-restore --verify-no-changes --exclude submodules/* --verbosity diagnostic

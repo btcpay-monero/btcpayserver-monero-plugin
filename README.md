@@ -35,16 +35,16 @@ BTCPay Server's Docker deployment simplifies the setup by automatically configur
 
 ## Building and testing
 
-## 🧑‍💻 Local Development Setup
+## Local Development Setup
 If you're contributing to this plugin or running a local development instance of BTCPay Server with the Monero plugin, follow these steps.
-## 1) Requirements
+## 1. Requirements
 
 - .NET 8.0 SDK or later
 - JetBrains Rider (recommended) or Visual Studio Code with C# support
 - Git
 - Docker and Docker Compose
 
-## 2) Clone the Repositories
+## 2. Clone the Repositories
 Create a working directory and clone both the BTCPay Server and Monero plugin repositories side by side:
 If you are a developer maintaining this plugin, in order to maintain this plugin, you need to clone this repository with `--recurse-submodules`:
 
@@ -63,7 +63,7 @@ To build and run unit tests, run the following commands:
 
 ```bash
 dotnet build btcpay-monero-plugin.sln
-dotnet test BTCPayServer.Plugins.Monero.UnitTests --verbosity normal
+dotnet test BTCPayServer.Plugins.UnitTests --verbosity normal
 ```
 To run unit tests with coverage, install JetBrains dotCover CLI:
 
@@ -83,7 +83,13 @@ dotnet build btcpay-monero-plugin.sln
 docker compose -f BTCPayServer.Plugins.IntegrationTests/docker-compose.yml run tests
 ```
 
-**BTCPAY_XMR_CASHCOW_WALLET_DAEMON_URI** | **Optional**. The URI of the [monero-wallet-rpc](https://getmonero.dev/interacting/monero-wallet-rpc.html) interface for the cashcow wallet. This is used to create a second wallet for testing purposes in regtest mode. | http://
+**BTCPAY_XMR_CASHCOW_WALLET_DAEMON_URI** | **Optional**. The URI of the [monero-wallet-rpc](https://getmonero.dev/interacting/monero-wallet-rpc.html) interface for the cashcow wallet. This is used to create a second wallet for testing purposes in regtest mode.
+
+## Code formatting
+
+We use the **unmodified** standardized `.editorconfig` from .NET SDK. Run `dotnet new editorconfig --force` to apply the latest version.
+
+To enforce formatting for the whole project, run `dotnet format btcpay-monero-plugin.sln --exclude submodules/* --verbosity diagnostic`
 
 ## 4. Configure BTCPay Server to Load the Plugin
 

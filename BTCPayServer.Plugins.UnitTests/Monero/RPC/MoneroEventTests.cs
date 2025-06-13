@@ -1,4 +1,5 @@
 using BTCPayServer.Plugins.Monero.RPC;
+
 using Xunit;
 
 namespace BTCPayServer.Plugins.UnitTests.Monero.RPC
@@ -46,6 +47,6 @@ namespace BTCPayServer.Plugins.UnitTests.Monero.RPC
             Assert.Equal(expected, result);
         }
 
-        
+
     }
 }

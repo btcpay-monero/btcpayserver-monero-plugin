@@ -1,0 +1,5 @@
+# Windows CRLF endings expected on server
+* text eol=crlf
+
+# Explicitly set Unix LF endings for .sh files
+*.sh text eol=lf

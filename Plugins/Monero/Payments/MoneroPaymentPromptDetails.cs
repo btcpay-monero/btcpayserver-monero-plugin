@@ -1,4 +1,5 @@
 using BTCPayServer.Payments;
+
 using Newtonsoft.Json;
 
 namespace BTCPayServer.Plugins.Monero.Payments

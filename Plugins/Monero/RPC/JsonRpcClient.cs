@@ -4,6 +4,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
 
@@ -48,7 +49,7 @@ namespace BTCPayServer.Plugins.Monero.RPC
             HttpResponseMessage rawResult = await _httpClient.SendAsync(httpRequest, cts);
             rawResult.EnsureSuccessStatusCode();
             var rawJson = await rawResult.Content.ReadAsStringAsync();
-            
+
             JsonRpcResult<TResponse> response;
             try
             {
@@ -74,10 +75,10 @@ namespace BTCPayServer.Plugins.Monero.RPC
 
         public class NoRequestModel
         {
-            public static NoRequestModel Instance = new NoRequestModel();
+            public static readonly NoRequestModel Instance = new NoRequestModel();
         }
 
-        internal class JsonRpcApiException : Exception
+        public class JsonRpcApiException : Exception
         {
             public JsonRpcResultError Error { get; set; }
 

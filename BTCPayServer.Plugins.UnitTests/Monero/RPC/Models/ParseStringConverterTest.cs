@@ -1,5 +1,7 @@
 using BTCPayServer.Plugins.Monero.RPC.Models;
+
 using Newtonsoft.Json;
+
 using Xunit;
 
 namespace BTCPayServer.Plugins.UnitTests.Monero.RPC.Models

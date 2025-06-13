@@ -1,24 +1,12 @@
 using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
 using System.Threading.Tasks;
-using AngleSharp.Dom;
-using BTCPayServer.Abstractions.Extensions;
-using BTCPayServer.BIP78.Sender;
+
 using BTCPayServer.Data;
-using BTCPayServer.Logging;
-using BTCPayServer.Models;
-using BTCPayServer.Models.InvoicingModels;
 using BTCPayServer.Payments;
-using BTCPayServer.Plugins.Altcoins;
-using BTCPayServer.Rating;
+using BTCPayServer.Plugins.Monero.RPC.Models;
 using BTCPayServer.Plugins.Monero.Services;
 using BTCPayServer.Plugins.Monero.Utils;
-using BTCPayServer.Plugins.Monero.RPC.Models;
-using BTCPayServer.Services.Invoices;
-using BTCPayServer.Services.Rates;
-using NBitcoin;
+
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -42,7 +30,7 @@ namespace BTCPayServer.Plugins.Monero.Payments
         }
         bool IsReady() => _moneroRpcProvider.IsConfigured(_network.CryptoCode) && _moneroRpcProvider.IsAvailable(_network.CryptoCode);
 
-		public Task BeforeFetchingRates(PaymentMethodContext context)
+        public Task BeforeFetchingRates(PaymentMethodContext context)
         {
             context.Prompt.Currency = _network.CryptoCode;
             context.Prompt.Divisibility = _network.Divisibility;
@@ -61,17 +49,19 @@ namespace BTCPayServer.Plugins.Monero.Payments
                     };
                 }
                 catch (Exception ex)
-				{
+                {
                     context.Logs.Write($"Error in BeforeFetchingRates: {ex.Message}", InvoiceEventData.EventSeverity.Error);
-				}
-			}
+                }
+            }
             return Task.CompletedTask;
         }
 
-		public async Task ConfigurePrompt(PaymentMethodContext context)
+        public async Task ConfigurePrompt(PaymentMethodContext context)
         {
             if (!_moneroRpcProvider.IsConfigured(_network.CryptoCode))
-				throw new PaymentMethodUnavailableException($"BTCPAY_XMR_WALLET_DAEMON_URI or BTCPAY_XMR_DAEMON_URI isn't configured");
+            {
+                throw new PaymentMethodUnavailableException($"BTCPAY_XMR_WALLET_DAEMON_URI or BTCPAY_XMR_DAEMON_URI isn't configured");
+            }
             if (!_moneroRpcProvider.IsAvailable(_network.CryptoCode) || context.State is not Prepare moneroPrepare)
                 throw new PaymentMethodUnavailableException($"Node or wallet not available");
             var invoice = context.InvoiceEntity;
@@ -107,11 +97,11 @@ namespace BTCPayServer.Plugins.Monero.Payments
             public long AccountIndex { get; internal set; }
         }
 
-        public MoneroLikeOnChainPaymentMethodDetails ParsePaymentPromptDetails(Newtonsoft.Json.Linq.JToken details)
+        public MoneroLikeOnChainPaymentMethodDetails ParsePaymentPromptDetails(JToken details)
         {
             return details.ToObject<MoneroLikeOnChainPaymentMethodDetails>(Serializer);
         }
-        object IPaymentMethodHandler.ParsePaymentPromptDetails(Newtonsoft.Json.Linq.JToken details)
+        object IPaymentMethodHandler.ParsePaymentPromptDetails(JToken details)
         {
             return ParsePaymentPromptDetails(details);
         }

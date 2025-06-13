@@ -1,5 +1,6 @@
 using BTCPayServer.Payments;
 using BTCPayServer.Plugins.Monero.ViewModels;
+
 using Xunit;
 
 namespace BTCPayServer.Plugins.UnitTests.Monero.ViewModels
@@ -21,7 +22,7 @@ namespace BTCPayServer.Plugins.UnitTests.Monero.ViewModels
             var receivedTime = DateTimeOffset.UtcNow;
             var transactionLink = "https://explorer.monero.com/tx/tx123";
             var currency = "XMR";
-            
+
             viewModel.PaymentMethodId = paymentMethodId;
             viewModel.Confirmations = confirmations;
             viewModel.DepositAddress = depositAddress;
@@ -30,7 +31,7 @@ namespace BTCPayServer.Plugins.UnitTests.Monero.ViewModels
             viewModel.ReceivedTime = receivedTime;
             viewModel.TransactionLink = transactionLink;
             viewModel.Currency = currency;
-            
+
             Assert.Equal(paymentMethodId, viewModel.PaymentMethodId);
             Assert.Equal(confirmations, viewModel.Confirmations);
             Assert.Equal(depositAddress, viewModel.DepositAddress);

@@ -6,6 +6,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+
 using BTCPayServer.Abstractions.Constants;
 using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Abstractions.Models;
@@ -19,6 +20,7 @@ using BTCPayServer.Plugins.Monero.RPC.Models;
 using BTCPayServer.Plugins.Monero.Services;
 using BTCPayServer.Services.Invoices;
 using BTCPayServer.Services.Stores;
+
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -58,7 +60,7 @@ namespace BTCPayServer.Plugins.Monero.Controllers
         {
             return View("/Views/Monero/GetStoreMoneroLikePaymentMethods.cshtml", await GetVM(StoreData));
         }
-[NonAction]
+        [NonAction]
         public async Task<MoneroLikePaymentMethodListViewModel> GetVM(StoreData storeData)
         {
             var excludeFilters = storeData.GetStoreBlob().GetExcludedPaymentMethods();
@@ -269,7 +271,7 @@ namespace BTCPayServer.Plugins.Monero.Controllers
                         ModelState.AddModelError(nameof(viewModel.AccountIndex), StringLocalizer["Could not open the wallet: {0}", ex.Message]);
                         return View("/Views/Monero/GetStoreMoneroLikePaymentMethod.cshtml", viewModel);
                     }
-                    
+
                     TempData.SetStatusMessageModel(new StatusMessageModel
                     {
                         Severity = StatusMessageModel.StatusSeverity.Info,

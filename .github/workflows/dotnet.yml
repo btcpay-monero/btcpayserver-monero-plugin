@@ -8,7 +8,7 @@ on:
     branches:
       - "master"
   workflow_dispatch:
-      
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -29,16 +29,16 @@ jobs:
 
     - name: Clean project
       run: dotnet clean
-      
+
     - name: Build projects
       run: dotnet build  -c Release --no-restore
-      
+
     - name: Deterministic build check
       run: |
         dotnet tool install --global dotnet-validate --version 0.0.1-preview.537
         dotnet pack Plugins/Monero/BTCPayServer.Plugins.Monero.csproj -c Release /p:PackageVersion=1 --no-build -o nuget-packages
         dotnet validate package local nuget-packages/BTCPayServer.Plugins.Monero.1.0.0.nupkg
-      
+
     - name: Run unit tests
       run: |
         dotnet tool install --global JetBrains.dotCover.CommandLineTools

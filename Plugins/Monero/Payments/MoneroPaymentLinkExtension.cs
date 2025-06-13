@@ -1,8 +1,10 @@
 #nullable enable
 using System.Globalization;
+
 using BTCPayServer.Payments;
 using BTCPayServer.Plugins.Altcoins;
 using BTCPayServer.Services.Invoices;
+
 using Microsoft.AspNetCore.Mvc;
 
 namespace BTCPayServer.Plugins.Monero.Payments

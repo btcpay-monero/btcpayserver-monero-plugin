@@ -1,23 +1,26 @@
-using BTCPayServer.Abstractions.Contracts;
-using System.Net.Http;
-using System.Net;
-using BTCPayServer.Hosting;
-using BTCPayServer.Payments;
-using Microsoft.Extensions.DependencyInjection;
-using NBitcoin;
-using BTCPayServer.Configuration;
-using System.Linq;
 using System;
 using System.Globalization;
+using System.Linq;
+using System.Net;
+using System.Net.Http;
+
+using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Abstractions.Models;
-using BTCPayServer.Plugins.Altcoins;
+using BTCPayServer.Configuration;
+using BTCPayServer.Hosting;
+using BTCPayServer.Payments;
 using BTCPayServer.Plugins.Monero.Configuration;
 using BTCPayServer.Plugins.Monero.Payments;
 using BTCPayServer.Plugins.Monero.Services;
 using BTCPayServer.Services;
+
 using Microsoft.Extensions.Configuration;
-using NBXplorer;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+
+using NBitcoin;
+
+using NBXplorer;
 
 namespace BTCPayServer.Plugins.Monero;
 
@@ -81,7 +84,7 @@ public class MoneroPlugin : BaseBTCPayServerPlugin
 (IPaymentLinkExtension)ActivatorUtilities.CreateInstance(provider, typeof(MoneroPaymentLinkExtension), new object[] { network, pmi }));
         services.AddSingleton<ICheckoutModelExtension>(provider =>
 (ICheckoutModelExtension)ActivatorUtilities.CreateInstance(provider, typeof(MoneroCheckoutModelExtension), new object[] { network, pmi }));
-        
+
         services.AddSingleton<ICheckoutCheatModeExtension>(provider =>
             (ICheckoutCheatModeExtension)ActivatorUtilities.CreateInstance(provider, typeof(MoneroCheckoutCheatModeExtension), new object[] { network, pmi }));
 
@@ -99,11 +102,13 @@ public class MoneroPlugin : BaseBTCPayServerPlugin
         public override string GetTransactionLink(string paymentId)
         {
             if (string.IsNullOrEmpty(BlockExplorerLink))
+            {
                 return null;
+            }
             return string.Format(CultureInfo.InvariantCulture, BlockExplorerLink, paymentId);
         }
     }
-    
+
     private static MoneroLikeConfiguration ConfigureMoneroLikeConfiguration(IServiceProvider serviceProvider)
     {
         var configuration = serviceProvider.GetService<IConfiguration>();
@@ -139,14 +144,14 @@ public class MoneroPlugin : BaseBTCPayServerPlugin
                 var cryptoCode = moneroLikeSpecificBtcPayNetwork.CryptoCode.ToUpperInvariant();
                 if (daemonUri is null)
                 {
-					logger.LogWarning($"BTCPAY_{cryptoCode}_DAEMON_URI is not configured");
-				}
+                    logger.LogWarning($"BTCPAY_{cryptoCode}_DAEMON_URI is not configured");
+                }
                 if (walletDaemonUri is null)
                 {
                     logger.LogWarning($"BTCPAY_{cryptoCode}_WALLET_DAEMON_URI is not configured");
                 }
-				logger.LogWarning($"{cryptoCode} got disabled as it is not fully configured.");
-			}
+                logger.LogWarning($"{cryptoCode} got disabled as it is not fully configured.");
+            }
             else
             {
                 result.MoneroLikeConfigurationItems.Add(moneroLikeSpecificBtcPayNetwork.CryptoCode, new MoneroLikeConfigurationItem()
