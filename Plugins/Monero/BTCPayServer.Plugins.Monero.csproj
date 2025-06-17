@@ -14,6 +14,7 @@
   <!-- Plugin development properties -->
   <PropertyGroup>
     <AddRazorSupportForMvc>true</AddRazorSupportForMvc>
+    <StaticWebAssetsEnabled>false</StaticWebAssetsEnabled>
     <PreserveCompilationContext>false</PreserveCompilationContext>
     <GenerateEmbeddedFilesManifest>true</GenerateEmbeddedFilesManifest>
     <TargetFrameworkMonikerAssemblyAttributesPath>$([System.IO.Path]::Combine('$(IntermediateOutputPath)','$(TargetFrameworkMoniker).AssemblyAttributes$(DefaultLanguageSourceExtension)'))</TargetFrameworkMonikerAssemblyAttributesPath>

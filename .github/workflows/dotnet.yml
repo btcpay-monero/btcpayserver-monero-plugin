@@ -52,13 +52,13 @@ jobs:
       run: docker compose -f BTCPayServer.Plugins.IntegrationTests/docker-compose.yml down -v
 
     - name: Upload coverage report
-      uses: actions/upload-artifact@v4.6.2
+      uses: actions/upload-artifact@v4
       with:
         name: coverage-report
         path: coverage/dotcover.xml
 
     - name: Upload NuGet package
-      uses: actions/upload-artifact@v4.6.2
+      uses: actions/upload-artifact@v4
       with:
         name: nuget-package-${{ github.sha }}
         path: nuget-packages/BTCPayServer.Plugins.Monero.1.0.0.nupkg

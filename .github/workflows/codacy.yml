@@ -13,16 +13,17 @@ permissions:
 
 jobs:
   report-coverage:
+    if: github.repository == 'btcpay-monero/btcpayserver-monero-plugin' && github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Download coverage report
-        uses: actions/download-artifact@v4.3.0
+        uses: actions/download-artifact@v4
         with:
           name: coverage-report
           github-token: ${{ secrets.API_GITHUB }}
           run-id: ${{ github.event.workflow_run.id }}
       - name: Run codacy-coverage-reporter
-        uses: codacy/codacy-coverage-reporter-action@v1.3.0
+        uses: codacy/codacy-coverage-reporter-action@v1
         with:
           project-token: ${{ secrets.CODACY_PROJECT_TOKEN }}
           coverage-reports: dotcover.xml
