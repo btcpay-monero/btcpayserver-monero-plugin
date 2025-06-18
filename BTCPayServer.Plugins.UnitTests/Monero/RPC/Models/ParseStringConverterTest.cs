@@ -48,7 +48,7 @@ namespace BTCPayServer.Plugins.UnitTests.Monero.RPC.Models
             var serializer = new JsonSerializer();
             reader.Read();
 
-            Assert.Throws<Exception>(() => ParseStringConverter.Singleton.ReadJson(reader, typeof(long), null, serializer));
+            Assert.Throws<FormatException>(() => ParseStringConverter.Singleton.ReadJson(reader, typeof(long), null, serializer));
         }
 
         [Fact]

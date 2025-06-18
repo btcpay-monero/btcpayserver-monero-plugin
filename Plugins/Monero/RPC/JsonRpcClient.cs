@@ -27,7 +27,7 @@ namespace BTCPayServer.Plugins.Monero.RPC
 
 
         public async Task<TResponse> SendCommandAsync<TRequest, TResponse>(string method, TRequest data,
-            CancellationToken cts = default(CancellationToken))
+            CancellationToken cts = default)
         {
             var jsonSerializer = new JsonSerializerSettings
             {
@@ -75,7 +75,7 @@ namespace BTCPayServer.Plugins.Monero.RPC
 
         public class NoRequestModel
         {
-            public static readonly NoRequestModel Instance = new NoRequestModel();
+            public static readonly NoRequestModel Instance = new();
         }
 
         public class JsonRpcApiException : Exception

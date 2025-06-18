@@ -1,6 +1,5 @@
 using BTCPayServer.Rating;
 using BTCPayServer.Services.Rates;
-using BTCPayServer.Tests;
 using BTCPayServer.Tests.Mocks;
 
 using Xunit;

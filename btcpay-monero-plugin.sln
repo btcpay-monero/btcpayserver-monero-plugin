@@ -32,6 +32,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Misc", "Misc", "{BDB6EEEA-4
 		.dockerignore = .dockerignore
 		.gitignore = .gitignore
 		.gitmodules = .gitmodules
+		.editorconfig = .editorconfig
+		.globalconfig = .globalconfig
 		LICENSE.md = LICENSE.md
 		README.md = README.md
 	EndProjectSection
@@ -87,10 +89,10 @@ Global
 		{BC95362E-D430-4CB4-B888-EE1C054C1E7A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BC95362E-D430-4CB4-B888-EE1C054C1E7A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BC95362E-D430-4CB4-B888-EE1C054C1E7A}.Release|Any CPU.Build.0 = Release|Any CPU
-		{EE24163B-B82C-4561-92F2-C7198CE91F67}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{EE24163B-B82C-4561-92F2-C7198CE91F67}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{EE24163B-B82C-4561-92F2-C7198CE91F67}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{EE24163B-B82C-4561-92F2-C7198CE91F67}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DA3599F0-C2DD-4323-A52F-DED5F86722ED}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DA3599F0-C2DD-4323-A52F-DED5F86722ED}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DA3599F0-C2DD-4323-A52F-DED5F86722ED}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DA3599F0-C2DD-4323-A52F-DED5F86722ED}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{049FC011-1952-4140-9652-12921C106B02} = {891F21E0-262C-4430-90C5-7A540AD7C9AD}

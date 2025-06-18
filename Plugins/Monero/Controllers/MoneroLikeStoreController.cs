@@ -12,7 +12,6 @@ using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Client;
 using BTCPayServer.Data;
-using BTCPayServer.Filters;
 using BTCPayServer.Payments;
 using BTCPayServer.Plugins.Monero.Configuration;
 using BTCPayServer.Plugins.Monero.Payments;
@@ -87,7 +86,11 @@ namespace BTCPayServer.Plugins.Monero.Controllers
                     return _MoneroRpcProvider.WalletRpcClients[cryptoCode].SendCommandAsync<GetAccountsRequest, GetAccountsResponse>("get_accounts", new GetAccountsRequest());
                 }
             }
-            catch { }
+            catch
+            {
+                // ignored
+            }
+
             return Task.FromResult<GetAccountsResponse>(null);
         }
 
@@ -224,6 +227,7 @@ namespace BTCPayServer.Plugins.Monero.Controllers
                         }
                         catch
                         {
+                            // ignored
                         }
                     }
 
@@ -237,8 +241,8 @@ namespace BTCPayServer.Plugins.Monero.Controllers
                         }
                         catch
                         {
+                            // ignored
                         }
-
                     }
 
                     fileAddress = Path.Combine(configurationItem.WalletDirectory, "password");
@@ -251,6 +255,7 @@ namespace BTCPayServer.Plugins.Monero.Controllers
                         }
                         catch
                         {
+                            // ignored
                         }
                     }
 
@@ -263,7 +268,7 @@ namespace BTCPayServer.Plugins.Monero.Controllers
                         });
                         if (response?.Error != null)
                         {
-                            throw new Exception(response.Error.Message);
+                            throw new WalletOpenException(response.Error.Message);
                         }
                     }
                     catch (Exception ex)

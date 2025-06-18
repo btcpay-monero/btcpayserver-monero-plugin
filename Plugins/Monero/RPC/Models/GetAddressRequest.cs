@@ -1,5 +1,4 @@
-﻿
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 
 namespace BTCPayServer.Plugins.Monero.RPC.Models;
 

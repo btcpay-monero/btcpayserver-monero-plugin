@@ -62,8 +62,12 @@ namespace BTCPayServer.Plugins.Monero.Payments
             {
                 throw new PaymentMethodUnavailableException($"BTCPAY_XMR_WALLET_DAEMON_URI or BTCPAY_XMR_DAEMON_URI isn't configured");
             }
+
             if (!_moneroRpcProvider.IsAvailable(_network.CryptoCode) || context.State is not Prepare moneroPrepare)
+            {
                 throw new PaymentMethodUnavailableException($"Node or wallet not available");
+            }
+
             var invoice = context.InvoiceEntity;
             var feeRatePerKb = await moneroPrepare.GetFeeRate;
             var address = await moneroPrepare.ReserveAddress(invoice.Id);

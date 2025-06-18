@@ -25,8 +25,7 @@ namespace BTCPayServer.Plugins.Monero.Services
         public ImmutableDictionary<string, JsonRpcClient> DaemonRpcClients;
         public ImmutableDictionary<string, JsonRpcClient> WalletRpcClients;
 
-        private readonly ConcurrentDictionary<string, MoneroLikeSummary> _summaries =
-            new ConcurrentDictionary<string, MoneroLikeSummary>();
+        private readonly ConcurrentDictionary<string, MoneroLikeSummary> _summaries = new();
 
         public ConcurrentDictionary<string, MoneroLikeSummary> Summaries => _summaries;
 
@@ -185,6 +184,7 @@ namespace BTCPayServer.Plugins.Monero.Services
             }
             catch
             {
+                // ignored
             }
 
             await walletRpcClient.SendCommandAsync<CreateWalletRequest, JsonRpcClient.NoRequestModel>("create_wallet",

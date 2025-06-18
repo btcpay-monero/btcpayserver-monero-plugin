@@ -16,13 +16,12 @@ namespace BTCPayServer.Plugins.Monero.RPC.Models
                 return null;
             }
             var value = serializer.Deserialize<string>(reader);
-            long l;
-            if (Int64.TryParse(value, out l))
+            if (Int64.TryParse(value, out long l))
             {
                 return l;
             }
 
-            throw new Exception("Cannot unmarshal type long");
+            throw new FormatException("Cannot unmarshal type long");
         }
 
         public override void WriteJson(JsonWriter writer, object untypedValue, JsonSerializer serializer)
@@ -38,6 +37,6 @@ namespace BTCPayServer.Plugins.Monero.RPC.Models
             return;
         }
 
-        public static readonly ParseStringConverter Singleton = new ParseStringConverter();
+        public static readonly ParseStringConverter Singleton = new();
     }
 }

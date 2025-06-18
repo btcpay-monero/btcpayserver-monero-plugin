@@ -93,6 +93,8 @@ We use the **unmodified** standardized `.editorconfig` from .NET SDK. Run `dotne
 
 To enforce formatting for the whole project, run `dotnet format btcpay-monero-plugin.sln --exclude submodules/* --verbosity diagnostic`
 
+To enforce custom analyzer configuration options, we do use global _AnalyzerConfig_ `.globalconfig` file.
+
 ## 4. Configure BTCPay Server to Load the Plugin
 
 For vscode, open the `launch.json` file in the `.vscode` folder and set the `launchSettingsProfile` to `Altcoins-HTTPS`.
