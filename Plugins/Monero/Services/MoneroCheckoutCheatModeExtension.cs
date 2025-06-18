@@ -1,12 +1,8 @@
-﻿using System;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 
 using BTCPayServer.Payments;
-using BTCPayServer.Plugins.Altcoins;
 using BTCPayServer.Plugins.Monero.RPC;
 using BTCPayServer.Plugins.Monero.RPC.Models;
-
-using NBitcoin;
 
 namespace BTCPayServer.Plugins.Monero.Services;
 

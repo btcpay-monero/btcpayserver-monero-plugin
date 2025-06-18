@@ -5,8 +5,7 @@ namespace BTCPayServer.Plugins.Monero.Configuration
 {
     public class MoneroLikeConfiguration
     {
-        public Dictionary<string, MoneroLikeConfigurationItem> MoneroLikeConfigurationItems { get; set; } =
-            new Dictionary<string, MoneroLikeConfigurationItem>();
+        public Dictionary<string, MoneroLikeConfigurationItem> MoneroLikeConfigurationItems { get; set; } = [];
     }
 
     public class MoneroLikeConfigurationItem

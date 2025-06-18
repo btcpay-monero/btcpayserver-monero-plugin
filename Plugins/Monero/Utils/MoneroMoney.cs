@@ -2,7 +2,7 @@ using System.Globalization;
 
 namespace BTCPayServer.Plugins.Monero.Utils
 {
-    public class MoneroMoney
+    public static class MoneroMoney
     {
         public static decimal Convert(long piconero)
         {

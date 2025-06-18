@@ -1,0 +1,23 @@
+# Top level global AnalyzerConfig file
+is_global = true
+
+# Remove unused imports
+dotnet_diagnostic.IDE0005.severity = error
+
+# Add braces
+dotnet_diagnostic.IDE0011.severity = error
+
+# Inline variable declaration
+dotnet_diagnostic.IDE0018.severity = error
+
+# Use collection initializers
+dotnet_diagnostic.IDE0028.severity = error
+
+# Simplify default expression
+dotnet_diagnostic.IDE0034.severity = error
+
+# Remove unused parameter
+dotnet_diagnostic.IDE0060.severity = error
+
+# Simplify new expression
+dotnet_diagnostic.IDE0090.severity = error
