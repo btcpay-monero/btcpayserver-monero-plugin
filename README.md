@@ -83,7 +83,9 @@ dotnet build btcpay-monero-plugin.sln
 docker compose -f BTCPayServer.Plugins.IntegrationTests/docker-compose.yml run tests
 ```
 
-**BTCPAY_XMR_CASHCOW_WALLET_DAEMON_URI** | **Optional**. The URI of the [monero-wallet-rpc](https://getmonero.dev/interacting/monero-wallet-rpc.html) interface for the cashcow wallet. This is used to create a second wallet for testing purposes in regtest mode.
+| Environment variable | Description                                                                                                                                                                                                                                   | Example |
+| --- |-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------| --- |
+**BTCPAY_XMR_CASHCOW_WALLET_DAEMON_URI** | **Optional**. | The URI of the [monero-wallet-rpc](https://getmonero.dev/interacting/monero-wallet-rpc.html) interface for the cashcow wallet. This is used to create a second wallet for testing purposes in regtest mode.
 
 ## Code formatting
 
