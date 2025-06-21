@@ -26,8 +26,7 @@ namespace BTCPayServer.Plugins.UnitTests.Monero.Configuration
                 InternalWalletRpcUri = new Uri("http://localhost:18082"),
                 WalletDirectory = "/wallets",
                 Username = "user",
-                Password = "password",
-                CashCowWalletRpcUri = new Uri("http://localhost:18083")
+                Password = "password"
             };
 
             Assert.Equal("http://localhost:18081/", configItem.DaemonRpcUri.ToString());
@@ -35,7 +34,6 @@ namespace BTCPayServer.Plugins.UnitTests.Monero.Configuration
             Assert.Equal("/wallets", configItem.WalletDirectory);
             Assert.Equal("user", configItem.Username);
             Assert.Equal("password", configItem.Password);
-            Assert.Equal("http://localhost:18083/", configItem.CashCowWalletRpcUri.ToString());
         }
 
         [Trait("Category", "Unit")]
