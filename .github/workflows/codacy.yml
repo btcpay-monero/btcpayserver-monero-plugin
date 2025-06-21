@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   report-coverage:
-    if: github.repository == 'btcpay-monero/btcpayserver-monero-plugin' && github.event.workflow_run.conclusion == 'success'
+    if: github.repository == 'btcpay-monero/btcpayserver-monero-plugin'
     runs-on: ubuntu-latest
     steps:
       - name: Download coverage report

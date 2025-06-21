@@ -18,7 +18,7 @@ namespace BTCPayServer.Plugins.Monero.Services
 
         public bool AllAvailable()
         {
-            return _moneroRpcProvider.Summaries.All(pair => pair.Value.WalletAvailable);
+            return _moneroRpcProvider.Summaries.All(pair => pair.Value.DaemonAvailable);
         }
 
         public string Partial { get; } = "/Views/Monero/MoneroSyncSummary.cshtml";

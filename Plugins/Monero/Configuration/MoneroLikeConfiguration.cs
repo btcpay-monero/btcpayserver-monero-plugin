@@ -15,6 +15,5 @@ namespace BTCPayServer.Plugins.Monero.Configuration
         public string WalletDirectory { get; set; }
         public string Username { get; set; }
         public string Password { get; set; }
-        public Uri CashCowWalletRpcUri { get; set; }
     }
 }
