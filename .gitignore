@@ -6,3 +6,5 @@ Plugins/packed
 coverage
 nuget-packages
 **/.AssemblyAttributes
+btcpay-monero-plugin.sln.DotSettings.user
+.DS_Store

@@ -13,6 +13,7 @@ services:
       TESTS_INCONTAINER: "true"
       BTCPAY_XMR_DAEMON_URI: http://monerod:18081
       BTCPAY_XMR_WALLET_DAEMON_URI: http://xmr_wallet:18082
+      BTCPAY_XMR_WALLET_DAEMON_WALLETDIR: /wallet
     depends_on:
       - nbxplorer
       - postgres
