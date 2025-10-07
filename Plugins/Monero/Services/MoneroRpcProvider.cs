@@ -8,6 +8,8 @@ using BTCPayServer.Plugins.Monero.Configuration;
 using BTCPayServer.Plugins.Monero.RPC;
 using BTCPayServer.Plugins.Monero.RPC.Models;
 
+using Monero.Common;
+
 using NBitcoin;
 
 namespace BTCPayServer.Plugins.Monero.Services
@@ -16,8 +18,8 @@ namespace BTCPayServer.Plugins.Monero.Services
     {
         private readonly MoneroLikeConfiguration _moneroLikeConfiguration;
         private readonly EventAggregator _eventAggregator;
-        public ImmutableDictionary<string, JsonRpcClient> DaemonRpcClients;
-        public ImmutableDictionary<string, JsonRpcClient> WalletRpcClients;
+        public ImmutableDictionary<string, MoneroRpcConnection> DaemonRpcClients;
+        public ImmutableDictionary<string, MoneroRpcConnection> WalletRpcClients;
 
         public ConcurrentDictionary<string, MoneroLikeSummary> Summaries { get; } = new();
 
@@ -29,11 +31,11 @@ namespace BTCPayServer.Plugins.Monero.Services
             _eventAggregator = eventAggregator;
             DaemonRpcClients =
                 _moneroLikeConfiguration.MoneroLikeConfigurationItems.ToImmutableDictionary(pair => pair.Key,
-                    pair => new JsonRpcClient(pair.Value.DaemonRpcUri, pair.Value.Username, pair.Value.Password,
+                    pair => new MoneroRpcConnection(pair.Value.DaemonRpcUri, pair.Value.Username, pair.Value.Password,
                         httpClientFactory.CreateClient($"{pair.Key}client")));
             WalletRpcClients =
                 _moneroLikeConfiguration.MoneroLikeConfigurationItems.ToImmutableDictionary(pair => pair.Key,
-                    pair => new JsonRpcClient(pair.Value.InternalWalletRpcUri, "", "",
+                    pair => new MoneroRpcConnection(pair.Value.InternalWalletRpcUri, "", "",
                         httpClientFactory.CreateClient($"{pair.Key}client")));
         }
 
