@@ -38,8 +38,9 @@
 
   <!-- Deterministic build -->
   <ItemGroup>
-    <PackageReference Include="DotNet.ReproducibleBuilds" Version="1.2.25" PrivateAssets="All"/>
+    <PackageReference Include="DotNet.ReproducibleBuilds" Version="1.2.25" PrivateAssets="All" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+    <PackageReference Include="MoneroNet" Version="1.0.0-beta" />
   </ItemGroup>
 
   <!-- If you need Entity Framework, you can uncomment this. This will make it usable in your project without publishing assemblies
