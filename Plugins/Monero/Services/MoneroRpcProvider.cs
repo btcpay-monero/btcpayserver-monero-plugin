@@ -5,12 +5,14 @@ using System.Net.Http;
 using System.Threading.Tasks;
 
 using BTCPayServer.Plugins.Monero.Configuration;
-using BTCPayServer.Plugins.Monero.RPC;
-using BTCPayServer.Plugins.Monero.RPC.Models;
 
 using Monero.Common;
+using Monero.Daemon.Common;
+using Monero.Wallet.Rpc;
 
 using NBitcoin;
+
+// using NBitcoin;
 
 namespace BTCPayServer.Plugins.Monero.Services
 {
@@ -83,8 +85,8 @@ namespace BTCPayServer.Plugins.Monero.Services
             try
             {
                 var daemonResult =
-                    await daemonRpcClient.SendCommandAsync<JsonRpcClient.NoRequestModel, GetInfoResponse>("get_info",
-                        JsonRpcClient.NoRequestModel.Instance);
+                    await daemonRpcClient.SendCommandAsync<NoRequestModel, MoneroDaemonInfo>("get_info",
+                        NoRequestModel.Instance);
                 summary.TargetHeight = daemonResult.TargetHeight.GetValueOrDefault(0);
                 summary.CurrentHeight = daemonResult.Height;
                 summary.DaemonVersion = daemonResult.Version;
@@ -101,8 +103,8 @@ namespace BTCPayServer.Plugins.Monero.Services
             try
             {
                 var walletResult =
-                    await walletRpcClient.SendCommandAsync<JsonRpcClient.NoRequestModel, GetHeightResponse>(
-                        "get_height", JsonRpcClient.NoRequestModel.Instance);
+                    await walletRpcClient.SendCommandAsync<NoRequestModel, GetHeightResponse>(
+                        "get_height", NoRequestModel.Instance);
                 summary.WalletHeight = walletResult.Height;
                 summary.WalletAvailable = true;
             }
@@ -132,7 +134,7 @@ namespace BTCPayServer.Plugins.Monero.Services
         {
             public bool Synced { get; set; }
             public long CurrentHeight { get; set; }
-            public long WalletHeight { get; set; }
+            public ulong WalletHeight { get; set; }
             public long TargetHeight { get; set; }
             public DateTime UpdatedAt { get; set; }
             public bool DaemonAvailable { get; set; }

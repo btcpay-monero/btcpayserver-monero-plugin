@@ -3,9 +3,12 @@ using System.Threading.Tasks;
 
 using BTCPayServer.Data;
 using BTCPayServer.Payments;
-using BTCPayServer.Plugins.Monero.RPC.Models;
 using BTCPayServer.Plugins.Monero.Services;
 using BTCPayServer.Plugins.Monero.Utils;
+
+using Monero.Daemon.Common;
+using Monero.Daemon.Rpc;
+using Monero.Wallet.Rpc;
 
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -76,7 +79,7 @@ namespace BTCPayServer.Plugins.Monero.Payments
             var details = new MoneroLikeOnChainPaymentMethodDetails()
             {
                 AccountIndex = moneroPrepare.AccountIndex,
-                AddressIndex = address.AddressIndex,
+                AddressIndex = address.Index,
                 InvoiceSettledConfirmationThreshold = ParsePaymentMethodConfig(context.PaymentMethodConfig).InvoiceSettledConfirmationThreshold
             };
             context.Prompt.Destination = address.Address;

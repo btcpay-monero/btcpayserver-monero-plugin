@@ -1,6 +1,6 @@
-using BTCPayServer.Plugins.Monero.RPC;
-
 using Microsoft.AspNetCore.Mvc;
+
+using Monero.Common;
 
 namespace BTCPayServer.Plugins.Monero.Controllers
 {
