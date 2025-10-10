@@ -148,7 +148,7 @@ namespace BTCPayServer.Plugins.Monero.Services
 
             var existingPaymentData = expandedInvoices.SelectMany(tuple => tuple.ExistingPayments);
 
-            var accountToAddressQuery = new Dictionary<uint, List<uint>>();
+            var accountToAddressQuery = new Dictionary<long, List<long>>();
             //create list of subaddresses to account to query the monero wallet
             foreach (var expandedInvoice in expandedInvoices)
             {
@@ -328,9 +328,9 @@ namespace BTCPayServer.Plugins.Monero.Services
             }
         }
 
-        private async Task HandlePaymentData(string cryptoCode, ulong totalAmount, uint? subaccountIndex,
-            uint? subaddressIndex,
-            string txId, ulong confirmations, ulong blockHeight, ulong locktime, InvoiceEntity invoice,
+        private async Task HandlePaymentData(string cryptoCode, long totalAmount, uint subaccountIndex,
+            uint subaddressIndex,
+            string txId, int confirmations, ulong blockHeight, int locktime, InvoiceEntity invoice,
             List<(PaymentEntity Payment, InvoiceEntity invoice)> paymentsToUpdate)
         {
             var network = _networkProvider.GetNetwork(cryptoCode);
@@ -384,12 +384,12 @@ namespace BTCPayServer.Plugins.Monero.Services
         private bool GetStatus(MoneroLikePaymentData details, SpeedPolicy speedPolicy)
             => ConfirmationsRequired(details, speedPolicy) <= details.ConfirmationCount;
 
-        public static ulong ConfirmationsRequired(MoneroLikePaymentData details, SpeedPolicy speedPolicy)
+        public static int ConfirmationsRequired(MoneroLikePaymentData details, SpeedPolicy speedPolicy)
             => (details, speedPolicy) switch
             {
                 (_, _) when details.ConfirmationCount < details.LockTime =>
                     details.LockTime - details.ConfirmationCount,
-                ({ InvoiceSettledConfirmationThreshold: ulong v }, _) => v,
+                ({ InvoiceSettledConfirmationThreshold: int v }, _) => v,
                 (_, SpeedPolicy.HighSpeed) => 0,
                 (_, SpeedPolicy.MediumSpeed) => 1,
                 (_, SpeedPolicy.LowMediumSpeed) => 2,

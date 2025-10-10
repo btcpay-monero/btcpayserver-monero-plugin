@@ -14,7 +14,7 @@ namespace BTCPayServer.Plugins.UnitTests.Monero.Payments
 
             Assert.Equal(0, paymentData.SubaddressIndex);
             Assert.Equal(0, paymentData.SubaccountIndex);
-            Assert.Equal(0, paymentData.BlockHeight);
+            Assert.Equal(0UL, paymentData.BlockHeight);
             Assert.Equal(0, paymentData.ConfirmationCount);
             Assert.Null(paymentData.TransactionId);
             Assert.Null(paymentData.InvoiceSettledConfirmationThreshold);
@@ -37,7 +37,7 @@ namespace BTCPayServer.Plugins.UnitTests.Monero.Payments
 
             Assert.Equal(1, paymentData.SubaddressIndex);
             Assert.Equal(2, paymentData.SubaccountIndex);
-            Assert.Equal(100, paymentData.BlockHeight);
+            Assert.Equal(100UL, paymentData.BlockHeight);
             Assert.Equal(5, paymentData.ConfirmationCount);
             Assert.Equal("tx123", paymentData.TransactionId);
             Assert.Equal(10, paymentData.InvoiceSettledConfirmationThreshold);

@@ -292,7 +292,7 @@ namespace BTCPayServer.Plugins.Monero.Controllers
             [Display(Name = "Consider the invoice settled when the payment transaction …")]
             public MoneroLikeSettlementThresholdChoice SettlementConfirmationThresholdChoice { get; set; }
             [Display(Name = "Required Confirmations"), Range(0, 100)]
-            public long? CustomSettlementConfirmationThreshold { get; set; }
+            public int? CustomSettlementConfirmationThreshold { get; set; }
 
             public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
             {

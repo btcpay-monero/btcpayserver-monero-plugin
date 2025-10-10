@@ -44,7 +44,7 @@ namespace BTCPayServer.Plugins.Monero.Payments
             if (details is not null)
             {
                 context.Model.ReceivedConfirmations = details.ConfirmationCount;
-                context.Model.RequiredConfirmations = (int)MoneroListener.ConfirmationsRequired(details, context.InvoiceEntity.SpeedPolicy);
+                context.Model.RequiredConfirmations = MoneroListener.ConfirmationsRequired(details, context.InvoiceEntity.SpeedPolicy);
             }
 
             context.Model.InvoiceBitcoinUrl = paymentLinkExtension.GetPaymentLink(context.Prompt, context.UrlHelper);
