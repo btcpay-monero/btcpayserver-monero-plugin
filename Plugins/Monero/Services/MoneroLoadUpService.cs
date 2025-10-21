@@ -3,10 +3,11 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
-using BTCPayServer.Plugins.Monero.RPC.Models;
-
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+
+using Monero.Daemon.Common;
+using Monero.Wallet.Rpc;
 
 namespace BTCPayServer.Plugins.Monero.Services;
 
@@ -35,7 +36,7 @@ public class MoneroLoadUpService : IHostedService
                 string password = await TryToGetPassword(walletDir, cancellationToken);
 
                 await _moneroRpcProvider.WalletRpcClients[CryptoCode]
-                    .SendCommandAsync<OpenWalletRequest, OpenWalletResponse>("open_wallet",
+                    .SendCommandAsync<OpenWalletRequest, MoneroRpcResponse>("open_wallet",
                         new OpenWalletRequest { Filename = "wallet", Password = password }, cancellationToken);
 
                 await _moneroRpcProvider.UpdateSummary(CryptoCode);

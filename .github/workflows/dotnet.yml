@@ -42,7 +42,7 @@ jobs:
     - name: Run unit tests
       run: |
         dotnet tool install --global JetBrains.dotCover.CommandLineTools --version 2025.1.8
-        dotCover cover-dotnet --TargetArguments="test BTCPayServer.Plugins.UnitTests -c Release --no-build" --output=coverage/dotCover.UnitTests.output.dcvr --filters="-:Assembly=BTCPayServer.Plugins.UnitTests;-:Assembly=testhost;-:Assembly=BTCPayServer;-:Class=AspNetCoreGeneratedDocument.*"
+        dotCover cover-dotnet --TargetArguments="test BTCPayServer.Plugins.UnitTests -c Release --no-build -v n" --output=coverage/dotCover.UnitTests.output.dcvr --filters="-:Assembly=BTCPayServer.Plugins.UnitTests;-:Assembly=testhost;-:Assembly=BTCPayServer;-:Class=AspNetCoreGeneratedDocument.*"
 
     - name: Run integration tests
       run: docker compose -f BTCPayServer.Plugins.IntegrationTests/docker-compose.yml run tests

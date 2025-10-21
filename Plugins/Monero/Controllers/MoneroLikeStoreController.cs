@@ -210,7 +210,7 @@ namespace BTCPayServer.Plugins.Monero.Controllers
                     }
                     try
                     {
-                        var response = await _MoneroRpcProvider.WalletRpcClients[cryptoCode].SendCommandAsync<GenerateFromKeysRequest, GenerateFromKeysResponse>("generate_from_keys", new GenerateFromKeysRequest
+                        await _MoneroRpcProvider.WalletRpcClients[cryptoCode].SendCommandAsync<GenerateFromKeysRequest, GenerateFromKeysResponse>("generate_from_keys", new GenerateFromKeysRequest
                         {
                             PrimaryAddress = viewModel.PrimaryAddress,
                             PrivateViewKey = viewModel.PrivateViewKey,

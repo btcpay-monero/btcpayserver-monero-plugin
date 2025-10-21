@@ -12,8 +12,6 @@ using Monero.Wallet.Rpc;
 
 using NBitcoin;
 
-// using NBitcoin;
-
 namespace BTCPayServer.Plugins.Monero.Services
 {
     public class MoneroRpcProvider
@@ -61,8 +59,8 @@ namespace BTCPayServer.Plugins.Monero.Services
                 throw new InvalidOperationException($"Wallet RPC client not found for {cryptoCode}");
             }
 
-            await walletRpcClient.SendCommandAsync<JsonRpcClient.NoRequestModel, object>(
-                "close_wallet", JsonRpcClient.NoRequestModel.Instance);
+            await walletRpcClient.SendCommandAsync<NoRequestModel, object>(
+                "close_wallet", NoRequestModel.Instance);
         }
 
         public string GetWalletDirectory(string cryptoCode)
@@ -90,7 +88,7 @@ namespace BTCPayServer.Plugins.Monero.Services
                 summary.TargetHeight = daemonResult.TargetHeight.GetValueOrDefault(0);
                 summary.CurrentHeight = daemonResult.Height;
                 summary.DaemonVersion = daemonResult.Version;
-                summary.Restricted = daemonResult.Restricted;
+                summary.Restricted = daemonResult.IsRestricted;
                 summary.TargetHeight = summary.TargetHeight == 0 ? summary.CurrentHeight : summary.TargetHeight;
                 summary.Synced = !daemonResult.BusySyncing;
                 summary.UpdatedAt = DateTime.UtcNow;

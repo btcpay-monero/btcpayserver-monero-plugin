@@ -1,8 +1,9 @@
-using BTCPayServer.Plugins.Monero.RPC.Models;
 using BTCPayServer.Plugins.Monero.Services;
 using BTCPayServer.Rating;
 using BTCPayServer.Services.Rates;
 using BTCPayServer.Tests.Mocks;
+
+using Monero.Wallet.Rpc;
 
 using Xunit;
 using Xunit.Abstractions;
