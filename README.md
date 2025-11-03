@@ -154,3 +154,4 @@ Lunanode, a VPS provider, offers an [easy way to provision the infrastructure](h
 # Licence
 
 [MIT](LICENSE.md)
+"### Note from contributor\nImproved documentation for new contributors." 
