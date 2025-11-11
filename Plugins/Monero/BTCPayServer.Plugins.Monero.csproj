@@ -39,10 +39,7 @@
   <!-- Deterministic build -->
   <ItemGroup>
     <PackageReference Include="DotNet.ReproducibleBuilds" Version="1.2.25" PrivateAssets="All"/>
-    <PackageReference Include="DotNet.ReproducibleBuilds.Isolated" Version="1.2.25" />
-    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="All" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
-    <EmbeddedFiles Include="$(GeneratedAssemblyInfoFile)"/>
   </ItemGroup>
 
   <!-- If you need Entity Framework, you can uncomment this. This will make it usable in your project without publishing assemblies

@@ -1,12 +1,15 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
 
 using BTCPayServer.Plugins.Monero.Configuration;
 using BTCPayServer.Plugins.Monero.RPC;
 using BTCPayServer.Plugins.Monero.RPC.Models;
+
+using Microsoft.Extensions.Logging;
 
 using NBitcoin;
 
@@ -18,6 +21,7 @@ namespace BTCPayServer.Plugins.Monero.Services
         private readonly EventAggregator _eventAggregator;
         public ImmutableDictionary<string, JsonRpcClient> DaemonRpcClients;
         public ImmutableDictionary<string, JsonRpcClient> WalletRpcClients;
+        private readonly ILogger<MoneroRPCProvider> _logger;
 
         private readonly ConcurrentDictionary<string, MoneroLikeSummary> _summaries = new();
 
@@ -25,10 +29,12 @@ namespace BTCPayServer.Plugins.Monero.Services
 
         public MoneroRPCProvider(MoneroLikeConfiguration moneroLikeConfiguration,
             EventAggregator eventAggregator,
+            ILogger<MoneroRPCProvider> logger,
             IHttpClientFactory httpClientFactory)
         {
             _moneroLikeConfiguration = moneroLikeConfiguration;
             _eventAggregator = eventAggregator;
+            _logger = logger;
             DaemonRpcClients =
                 _moneroLikeConfiguration.MoneroLikeConfigurationItems.ToImmutableDictionary(pair => pair.Key,
                     pair => new JsonRpcClient(pair.Value.DaemonRpcUri, pair.Value.Username, pair.Value.Password,
@@ -50,6 +56,56 @@ namespace BTCPayServer.Plugins.Monero.Services
         {
             return summary.Synced &&
                    summary.WalletAvailable;
+        }
+
+        public async Task CloseWallet(string cryptoCode)
+        {
+            if (!WalletRpcClients.TryGetValue(cryptoCode.ToUpperInvariant(), out var walletRpcClient))
+            {
+                throw new InvalidOperationException($"Wallet RPC client not found for {cryptoCode}");
+            }
+
+            await walletRpcClient.SendCommandAsync<JsonRpcClient.NoRequestModel, object>(
+                "close_wallet", JsonRpcClient.NoRequestModel.Instance);
+        }
+
+        public void DeleteWallet()
+        {
+            if (!_moneroLikeConfiguration.MoneroLikeConfigurationItems.TryGetValue("XMR", out var configItem))
+            {
+                _logger.LogWarning("DeleteWallet: No XMR configuration found.");
+                return;
+            }
+
+            if (string.IsNullOrEmpty(configItem.WalletDirectory))
+            {
+                _logger.LogWarning("DeleteWallet: WalletDirectory is null or empty for XMR configuration.");
+                return;
+            }
+            try
+            {
+                var walletFile = Path.Combine(configItem.WalletDirectory, "view_wallet");
+                var keysFile = walletFile + ".keys";
+                var passwordFile = Path.Combine(configItem.WalletDirectory, "password");
+
+                if (File.Exists(walletFile))
+                {
+                    File.Delete(walletFile);
+                }
+                if (File.Exists(keysFile))
+                {
+                    File.Delete(keysFile);
+                }
+                if (File.Exists(passwordFile))
+                {
+                    File.Delete(passwordFile);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to delete wallet files in directory {Dir}",
+                    configItem.WalletDirectory);
+            }
         }
 
         public async Task<MoneroLikeSummary> UpdateSummary(string cryptoCode)
