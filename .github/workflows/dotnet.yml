@@ -31,7 +31,7 @@ jobs:
       run: dotnet clean
 
     - name: Build projects
-      run: dotnet build  -c Release --no-restore
+      run: dotnet build -maxcpucount:1 -c Release --no-restore
 
     - name: Deterministic build check
       run: |
