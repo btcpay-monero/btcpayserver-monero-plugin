@@ -1,9 +1,7 @@
-using System.Diagnostics;
-
+using BTCPayServer.Plugins.Monero.RPC.Models;
 using BTCPayServer.Plugins.Monero.Services;
 using BTCPayServer.Rating;
 using BTCPayServer.Services.Rates;
-using BTCPayServer.Tests;
 using BTCPayServer.Tests.Mocks;
 
 using Xunit;
@@ -14,7 +12,7 @@ namespace BTCPayServer.Plugins.IntegrationTests.Monero;
 public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroAndBitcoinIntegrationTestBase(helper)
 {
     [Fact]
-    public async Task EnableMoneroPluginSuccessfully()
+    public async Task ShouldEnableMoneroPluginSuccessfully()
     {
         await using var s = CreatePlaywrightTester();
         await s.StartAsync();
@@ -104,7 +102,7 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroAndBi
         await s.Page.SelectOptionAsync("#SettlementConfirmationThresholdChoice", "3");
         await s.Page.ClickAsync("#SaveButton");
 
-        await CleanUp(s);
+        await IntegrationTestUtils.CleanUpAsync(s);
     }
 
     [Fact]
@@ -129,64 +127,41 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroAndBi
 
         Assert.Equal("Could not generate view wallet from keys: Failed to parse public address", errorText);
 
-        await CleanUp(s);
+        await IntegrationTestUtils.CleanUpAsync(s);
     }
 
-    private static async Task CleanUp(PlaywrightTester playwrightTester)
+    [Fact]
+    public async Task ShouldFailWhenWalletFileAlreadyExists()
     {
-        MoneroRPCProvider moneroRpcProvider = playwrightTester.Server.PayTester.GetService<MoneroRPCProvider>();
-        if (moneroRpcProvider.IsAvailable("XMR"))
+        await using var s = CreatePlaywrightTester();
+        await s.StartAsync();
+
+        MoneroRPCProvider moneroRpcProvider = s.Server.PayTester.GetService<MoneroRPCProvider>();
+        await moneroRpcProvider.WalletRpcClients["XMR"].SendCommandAsync<GenerateFromKeysRequest, GenerateFromKeysResponse>("generate_from_keys", new GenerateFromKeysRequest
         {
-            await moneroRpcProvider.CloseWallet("XMR");
-            await moneroRpcProvider.UpdateSummary("XMR");
-        }
+            PrimaryAddress = "43Pnj6ZKGFTJhaLhiecSFfLfr64KPJZw7MyGH73T6PTDekBBvsTAaWEUSM4bmJqDuYLizhA13jQkMRPpz9VXBCBqQQb6y5L",
+            PrivateViewKey = "1bfa03b0c78aa6bc8292cf160ec9875657d61e889c41d0ebe5c54fd3a2c4b40e",
+            WalletFileName = "view_wallet",
+            Password = ""
+        });
+        await moneroRpcProvider.CloseWallet("XMR");
 
-        if (playwrightTester.Server.PayTester.InContainer)
-        {
-            moneroRpcProvider.DeleteWallet();
-        }
-        else
-        {
-            await RemoveWalletFromLocalDocker();
-        }
-    }
+        await s.RegisterNewUser(true);
+        await s.CreateNewStore();
+        await s.Page.Locator("a.nav-link[href*='monerolike/XMR']").ClickAsync();
+        await s.Page.Locator("input#PrimaryAddress")
+            .FillAsync("43Pnj6ZKGFTJhaLhiecSFfLfr64KPJZw7MyGH73T6PTDekBBvsTAaWEUSM4bmJqDuYLizhA13jQkMRPpz9VXBCBqQQb6y5L");
+        await s.Page.Locator("input#PrivateViewKey")
+            .FillAsync("1bfa03b0c78aa6bc8292cf160ec9875657d61e889c41d0ebe5c54fd3a2c4b40e");
+        await s.Page.Locator("input#RestoreHeight").FillAsync("0");
+        await s.Page.Locator("input#WalletPassword").FillAsync("pass123");
+        await s.Page.ClickAsync("button[name='command'][value='set-wallet-details']");
+        var errorText = await s.Page
+            .Locator("div.validation-summary-errors li")
+            .InnerTextAsync();
 
-    static async Task RemoveWalletFromLocalDocker()
-    {
-        try
-        {
-            var removeWalletFromDocker = new ProcessStartInfo
-            {
-                FileName = "docker",
-                Arguments = "exec xmr_wallet sh -c \"rm -rf /wallet/*\"",
-                RedirectStandardOutput = true,
-                RedirectStandardError = true
-            };
+        Assert.Equal("Could not generate view wallet from keys: Wallet already exists.", errorText);
 
-            using var process = Process.Start(removeWalletFromDocker);
-            if (process is null)
-            {
-                return;
-            }
-
-            var stdout = await process.StandardOutput.ReadToEndAsync();
-            var stderr = await process.StandardError.ReadToEndAsync();
-
-            await process.WaitForExitAsync();
-
-            if (!string.IsNullOrWhiteSpace(stdout))
-            {
-                Console.WriteLine(stdout);
-            }
-
-            if (!string.IsNullOrWhiteSpace(stderr))
-            {
-                Console.WriteLine(stderr);
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Cleanup failed: {ex}");
-        }
+        await IntegrationTestUtils.CleanUpAsync(s);
     }
 }
