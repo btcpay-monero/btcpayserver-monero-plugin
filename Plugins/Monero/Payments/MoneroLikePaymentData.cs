@@ -1,9 +1,3 @@
-using BTCPayServer.Client.Models;
-using BTCPayServer.Payments;
-using BTCPayServer.Plugins.Altcoins;
-using BTCPayServer.Plugins.Monero.Utils;
-using BTCPayServer.Services.Invoices;
-
 namespace BTCPayServer.Plugins.Monero.Payments
 {
     public class MoneroLikePaymentData

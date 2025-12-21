@@ -25,15 +25,18 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Plugins", "Plugins", "{C962
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BTCPayServer.Plugins.Monero", "Plugins\Monero\BTCPayServer.Plugins.Monero.csproj", "{319C8C91-952F-4CF6-A251-058DFC66D70F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BTCPayServer.Plugins.IntegrationTests", "BTCPayServer.Plugins.IntegrationTests\BTCPayServer.Plugins.IntegrationTests.csproj", "{B481573C-744D-433F-B4DA-442E3E19562E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BTCPayServer.Plugins.IntegrationTests", "BTCPayServer.Plugins.IntegrationTests\BTCPayServer.Plugins.IntegrationTests.csproj", "{DA3599F0-C2DD-4323-A52F-DED5F86722ED}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Misc", "Misc", "{BDB6EEEA-46CE-4E42-A1EC-A705518094A5}"
 	ProjectSection(SolutionItems) = preProject
 		.dockerignore = .dockerignore
 		.gitignore = .gitignore
 		.gitmodules = .gitmodules
+		.editorconfig = .editorconfig
+		.globalconfig = .globalconfig
 		LICENSE.md = LICENSE.md
 		README.md = README.md
+		CODE_OF_CONDUCT.md = CODE_OF_CONDUCT.md
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BTCPayServer.Plugins.UnitTests", "BTCPayServer.Plugins.UnitTests\BTCPayServer.Plugins.UnitTests.csproj", "{BC95362E-D430-4CB4-B888-EE1C054C1E7A}"
@@ -87,6 +90,10 @@ Global
 		{BC95362E-D430-4CB4-B888-EE1C054C1E7A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BC95362E-D430-4CB4-B888-EE1C054C1E7A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BC95362E-D430-4CB4-B888-EE1C054C1E7A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DA3599F0-C2DD-4323-A52F-DED5F86722ED}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DA3599F0-C2DD-4323-A52F-DED5F86722ED}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DA3599F0-C2DD-4323-A52F-DED5F86722ED}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DA3599F0-C2DD-4323-A52F-DED5F86722ED}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{049FC011-1952-4140-9652-12921C106B02} = {891F21E0-262C-4430-90C5-7A540AD7C9AD}

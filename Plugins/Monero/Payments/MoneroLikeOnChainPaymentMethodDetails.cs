@@ -1,5 +1,3 @@
-using BTCPayServer.Payments;
-
 namespace BTCPayServer.Plugins.Monero.Payments
 {
     public class MoneroLikeOnChainPaymentMethodDetails

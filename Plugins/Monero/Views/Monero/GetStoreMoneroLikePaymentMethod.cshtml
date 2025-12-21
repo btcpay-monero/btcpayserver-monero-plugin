@@ -20,38 +20,45 @@
             <div class="card">
                 <ul class="list-group list-group-flush">
                     <li class="list-group-item">Node available: @Model.Summary.DaemonAvailable</li>
+                    <li class="list-group-item">Wallet RPC available: @Model.Summary.WalletAvailable</li>
                     <li class="list-group-item">Last updated: @Model.Summary.UpdatedAt</li>
                     <li class="list-group-item">Synced: @Model.Summary.Synced (@Model.Summary.CurrentHeight / @Model.Summary.TargetHeight)</li>
                 </ul>
             </div>
         }
 
-        @if (Model.SupportWalletExport && Model.Summary?.WalletHeight is null or 0)
+        @if (Model.Summary?.WalletHeight is null or 0)
         {
-            <form method="post" asp-action="GetStoreMoneroLikePaymentMethod" 
+            <form method="post" asp-action="GetStoreMoneroLikePaymentMethod"
                   asp-route-storeId="@Context.GetRouteValue("storeId")"
                   asp-route-cryptoCode="@Context.GetRouteValue("cryptoCode")"
-                  class="mt-4" enctype="multipart/form-data">
+                  class="mt-4">
 
                 <div class="card my-2">
-                    <h3 class="card-title p-2">Upload Wallet</h3>
+                    <h3 class="card-title p-2">Set View-Only Wallet Details</h3>
+
                     <div class="form-group p-2">
-                        <label asp-for="WalletFile" class="form-label"></label>
-                        <input class="form-control" asp-for="WalletFile" required>
-                        <span asp-validation-for="WalletFile" class="text-danger"></span>
+                        <label asp-for="PrimaryAddress" class="form-label">Wallet Primary Address</label>
+                        <input type="text" class="form-control" asp-for="PrimaryAddress" required>
+                        <span asp-validation-for="PrimaryAddress" class="text-danger"></span>
                     </div>
                     <div class="form-group p-2">
-                        <label asp-for="WalletKeysFile" class="form-label"></label>
-                        <input class="form-control" asp-for="WalletKeysFile" required>
-                        <span asp-validation-for="WalletKeysFile" class="text-danger"></span>
+                        <label asp-for="PrivateViewKey" class="form-label">Wallet Private View Key</label>
+                        <input type="text" class="form-control" asp-for="PrivateViewKey" required>
+                        <span asp-validation-for="PrivateViewKey" class="text-danger"></span>
                     </div>
                     <div class="form-group p-2">
-                        <label asp-for="WalletPassword" class="form-label"></label>
-                        <input class="form-control" asp-for="WalletPassword">
+                        <label asp-for="RestoreHeight" class="form-label">Restore Height (Block Height)</label>
+                        <input type="number" class="form-control" asp-for="RestoreHeight" required>
+                        <span asp-validation-for="RestoreHeight" class="text-danger"></span>
+                    </div>
+                    <div class="form-group p-2">
+                        <label asp-for="WalletPassword" class="form-label">Wallet Password</label>
+                        <input type="password" class="form-control" asp-for="WalletPassword" required>
                         <span asp-validation-for="WalletPassword" class="text-danger"></span>
                     </div>
                     <div class="card-footer text-right">
-                        <button name="command" value="upload-wallet" class="btn btn-secondary" type="submit">Upload</button>
+                        <button name="command" value="set-wallet-details" class="btn btn-secondary" type="submit">Set Wallet Details</button>
                     </div>
                 </div>
             </form>

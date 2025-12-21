@@ -60,7 +60,10 @@ namespace BTCPayServer.Plugins.Monero.Services
                     }
                 }
             }
-            catch when (cancellation.IsCancellationRequested) { }
+            catch when (cancellation.IsCancellationRequested)
+            {
+                // ignored
+            }
         }
 
         public Task StopAsync(CancellationToken cancellationToken)

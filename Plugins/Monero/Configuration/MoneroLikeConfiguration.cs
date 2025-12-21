@@ -5,8 +5,7 @@ namespace BTCPayServer.Plugins.Monero.Configuration
 {
     public class MoneroLikeConfiguration
     {
-        public Dictionary<string, MoneroLikeConfigurationItem> MoneroLikeConfigurationItems { get; set; } =
-            new Dictionary<string, MoneroLikeConfigurationItem>();
+        public Dictionary<string, MoneroLikeConfigurationItem> MoneroLikeConfigurationItems { get; set; } = [];
     }
 
     public class MoneroLikeConfigurationItem
@@ -16,6 +15,5 @@ namespace BTCPayServer.Plugins.Monero.Configuration
         public string WalletDirectory { get; set; }
         public string Username { get; set; }
         public string Password { get; set; }
-        public Uri CashCowWalletRpcUri { get; set; }
     }
 }

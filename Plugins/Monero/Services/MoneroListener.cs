@@ -152,8 +152,7 @@ namespace BTCPayServer.Plugins.Monero.Services
             foreach (var expandedInvoice in expandedInvoices)
             {
                 var addressIndexList =
-                    accountToAddressQuery.GetValueOrDefault(expandedInvoice.PaymentMethodDetails.AccountIndex,
-                        new List<long>());
+                    accountToAddressQuery.GetValueOrDefault(expandedInvoice.PaymentMethodDetails.AccountIndex, []);
 
                 addressIndexList.AddRange(
                     expandedInvoice.ExistingPayments.Select(tuple => tuple.PaymentData.SubaddressIndex));
@@ -210,7 +209,7 @@ namespace BTCPayServer.Plugins.Monero.Services
                     }
 
 
-                    return HandlePaymentData(cryptoCode, transfer.Address, transfer.Amount, transfer.SubaddrIndex.Major,
+                    return HandlePaymentData(cryptoCode, transfer.Amount, transfer.SubaddrIndex.Major,
                         transfer.SubaddrIndex.Minor, transfer.Txid, transfer.Confirmations, transfer.Height,
                         transfer.UnlockTime, invoice,
                         updatedPaymentEntities);
@@ -259,7 +258,6 @@ namespace BTCPayServer.Plugins.Monero.Services
                 var index = destination.First().SubaddrIndex;
 
                 await HandlePaymentData(cryptoCode,
-                    destination.Key,
                     destination.Sum(destination1 => destination1.Amount),
                     index.Major,
                     index.Minor,
@@ -329,7 +327,7 @@ namespace BTCPayServer.Plugins.Monero.Services
             }
         }
 
-        private async Task HandlePaymentData(string cryptoCode, string address, long totalAmount, long subaccountIndex,
+        private async Task HandlePaymentData(string cryptoCode, long totalAmount, long subaccountIndex,
             long subaddressIndex,
             string txId, long confirmations, long blockHeight, long locktime, InvoiceEntity invoice,
             List<(PaymentEntity Payment, InvoiceEntity invoice)> paymentsToUpdate)
