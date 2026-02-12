@@ -20,7 +20,7 @@ jobs:
           submodules: recursive
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 8.0.x
         
@@ -28,4 +28,4 @@ jobs:
         run: dotnet restore
         
       - name: Submit dependencies
-        uses: advanced-security/component-detection-dependency-submission-action@v0.1.0
+        uses: advanced-security/component-detection-dependency-submission-action@v0.1.1

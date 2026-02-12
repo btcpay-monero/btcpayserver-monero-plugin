@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.Text;
+using System.Text.Json;
 
 using BTCPayServer.Plugins.Monero.Services;
 using BTCPayServer.Tests;
@@ -19,6 +21,9 @@ public static class IntegrationTestUtils
         .Create(builder => builder.AddConsole())
         .CreateLogger("IntegrationTestUtils");
 
+    private static readonly bool RunsInContainer =
+        bool.Parse(Environment.GetEnvironmentVariable("TESTS_INCONTAINER") ?? "false");
+
     private static readonly string ContainerWalletDir =
         Environment.GetEnvironmentVariable("BTCPAY_XMR_WALLET_DAEMON_WALLETDIR") ?? "/wallet";
 
@@ -30,7 +35,7 @@ public static class IntegrationTestUtils
             await moneroRpcProvider.CloseWallet("XMR");
         }
 
-        if (playwrightTester.Server.PayTester.InContainer)
+        if (RunsInContainer)
         {
             DeleteWalletInContainer();
             await DropDatabaseAsync(
@@ -68,30 +73,28 @@ public static class IntegrationTestUtils
         }
     }
 
-    public static async Task CopyWalletFilesToMoneroRpcDirAsync(PlaywrightTester playwrightTester, String walletDir)
+    private static async Task CopyViewWalletPasswordFileToMoneroRpcDirAsync(String walletDir)
     {
-        Logger.LogInformation("Starting to copy wallet files");
-        if (playwrightTester.Server.PayTester.InContainer)
+        Logger.LogInformation("Starting to copy password file");
+        if (RunsInContainer)
         {
-            CopyWalletFilesInContainer(walletDir);
+            CopyViewWalletPasswordFileInContainer(walletDir);
         }
         else
         {
-            await CopyWalletFilesToLocalDocker(walletDir);
+            await CopyViewWalletPasswordFileToLocalDocker(walletDir);
         }
     }
 
-    private static void CopyWalletFilesInContainer(String walletDir)
+    private static void CopyViewWalletPasswordFileInContainer(String walletDir)
     {
         try
         {
-            CopyWalletFile("wallet", walletDir);
-            CopyWalletFile("wallet.keys", walletDir);
             CopyWalletFile("password", walletDir);
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Failed to copy wallet files to the Monero directory.");
+            Logger.LogError(ex, "Failed to copy password file to the Monero directory.");
         }
     }
 
@@ -119,27 +122,21 @@ public static class IntegrationTestUtils
     }
 
 
-    private static async Task CopyWalletFilesToLocalDocker(String walletDir)
+    private static async Task CopyViewWalletPasswordFileToLocalDocker(String walletDir)
     {
         try
         {
             var fullWalletDir = Path.Combine(AppContext.BaseDirectory, "Resources", walletDir);
 
             await RunProcessAsync("docker",
-                $"cp \"{Path.Combine(fullWalletDir, "wallet")}\" xmr_wallet:/wallet/wallet");
-
-            await RunProcessAsync("docker",
-                $"cp \"{Path.Combine(fullWalletDir, "wallet.keys")}\" xmr_wallet:/wallet/wallet.keys");
-
-            await RunProcessAsync("docker",
                 $"cp \"{Path.Combine(fullWalletDir, "password")}\" xmr_wallet:/wallet/password");
 
             await RunProcessAsync("docker",
-                "exec xmr_wallet chown monero:monero /wallet/wallet /wallet/wallet.keys /wallet/password");
+                "exec xmr_wallet chown monero:monero /wallet/password");
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Failed to copy wallet files to the Monero directory.");
+            Logger.LogError(ex, "Failed to copy password file to the Monero directory.");
         }
     }
 
@@ -231,4 +228,45 @@ public static class IntegrationTestUtils
             Logger.LogError(ex, "Failed to delete wallet files in directory {Dir}", ContainerWalletDir);
         }
     }
+
+    public static async Task CreateTestXmrWalletFilesViaRpc(string password)
+    {
+        var host = RunsInContainer ? "xmr_wallet" : "localhost";
+
+        Logger.LogInformation("Creating wallet files via RPC on {Host}", host);
+
+        using var httpClient = new HttpClient();
+        var uri = new UriBuilder { Scheme = "http", Host = host, Port = 18082 }.Uri;
+        httpClient.BaseAddress = uri;
+
+        var requestPayload = new
+        {
+            id = "0",
+            jsonrpc = "2.0",
+            method = "generate_from_keys",
+            @params = new
+            {
+                address =
+                    "43Pnj6ZKGFTJhaLhiecSFfLfr64KPJZw7MyGH73T6PTDekBBvsTAaWEUSM4bmJqDuYLizhA13jQkMRPpz9VXBCBqQQb6y5L",
+                viewkey = "1bfa03b0c78aa6bc8292cf160ec9875657d61e889c41d0ebe5c54fd3a2c4b40e",
+                filename = "wallet",
+                restore_height = 0,
+                password
+            }
+        };
+
+        var json = JsonSerializer.Serialize(requestPayload);
+        using var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+        var response = await httpClient.PostAsync("/json_rpc", content);
+        response.EnsureSuccessStatusCode();
+    }
+
+    public static async Task CreateTestXmrWalletWithPasswordAsync(string walletPassword, string viewWalletPasswordFile)
+    {
+        await CreateTestXmrWalletFilesViaRpc(walletPassword);
+
+        await CopyViewWalletPasswordFileToMoneroRpcDirAsync(viewWalletPasswordFile);
+    }
+
 }
