@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:8.0-bookworm-slim AS builder
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS builder
 
 RUN apt-get update && apt-get install -y --no-install-recommends chromium-driver \
     && rm -rf /var/lib/apt/lists/*
@@ -21,8 +21,8 @@ COPY ../submodules/btcpayserver/BTCPayServer.Abstractions/. BTCPayServer.Abstrac
 COPY ../submodules/btcpayserver/BTCPayServer/. BTCPayServer/.
 COPY ../submodules/btcpayserver/Build/Version.csproj Build/Version.csproj
 
-ENV SCREEN_HEIGHT 600 \
-    SCREEN_WIDTH 1200
+ENV SCREEN_HEIGHT=600 \
+    SCREEN_WIDTH=1200
 
 COPY . .
 
@@ -33,7 +33,7 @@ RUN cd Plugins/Monero && dotnet build BTCPayServer.Plugins.Monero.sln --configur
 RUN cd BTCPayServer.Plugins.IntegrationTests && dotnet build --configuration ${CONFIGURATION_NAME} /p:CI_TESTS=true /p:RazorCompileOnBuild=true
 RUN dotnet tool install --global dotnet-reportgenerator-globaltool --version 5.5.4
 ENV PATH="$PATH:/root/.dotnet/tools"
-RUN pwsh /source/BTCPayServer.Plugins.IntegrationTests/bin/Release/net8.0/playwright.ps1 install chromium --with-deps
+RUN pwsh /source/BTCPayServer.Plugins.IntegrationTests/bin/Release/net10.0/playwright.ps1 install chromium --with-deps
 WORKDIR /source/BTCPayServer.Plugins.IntegrationTests
 ENV CONFIGURATION_NAME=${CONFIGURATION_NAME}
 ENTRYPOINT ["./docker-entrypoint.sh"]

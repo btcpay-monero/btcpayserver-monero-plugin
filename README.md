@@ -39,7 +39,7 @@ BTCPay Server's Docker deployment simplifies the setup by automatically configur
 If you're contributing to this plugin or running a local development instance of BTCPay Server with the Monero plugin, follow these steps.
 ## 1. Requirements
 
-- .NET 8.0 SDK or later
+- .NET 10.0 SDK or later
 - JetBrains Rider (recommended) or Visual Studio Code with C# support
 - Git
 - Docker and Docker Compose
@@ -94,7 +94,7 @@ Then create the `appsettings.dev.json` file in `btcpayserver/BTCPayServer`, with
 
 ```json
 {
-  "DEBUG_PLUGINS": "..\\..\\Plugins\\Monero\\bin\\Debug\\net8.0\\BTCPayServer.Plugins.Monero.dll",
+  "DEBUG_PLUGINS": "..\\..\\Plugins\\Monero\\bin\\Debug\\net10.0\\BTCPayServer.Plugins.Monero.dll",
   "XMR_DAEMON_URI": "http://127.0.0.1:18081",
   "XMR_WALLET_DAEMON_URI": "http://127.0.0.1:18082"
 }

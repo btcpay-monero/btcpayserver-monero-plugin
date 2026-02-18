@@ -27,9 +27,9 @@ namespace BTCPayServer.Plugins.Monero;
 public class MoneroPlugin : BaseBTCPayServerPlugin
 {
     public override IBTCPayServerPlugin.PluginDependency[] Dependencies { get; } =
-    {
-        new IBTCPayServerPlugin.PluginDependency { Identifier = nameof(BTCPayServer), Condition = ">=2.1.0" }
-    };
+    [
+        new() { Identifier = nameof(BTCPayServer), Condition = ">=2.3.7" }
+    ];
 
     public override void Execute(IServiceCollection services)
     {
@@ -37,16 +37,16 @@ public class MoneroPlugin : BaseBTCPayServerPlugin
         var prov = pluginServices.BootstrapServices.GetRequiredService<NBXplorerNetworkProvider>();
         var chainName = prov.NetworkType;
 
-        var network = new MoneroLikeSpecificBtcPayNetwork()
+        var network = new MoneroLikeSpecificBtcPayNetwork
         {
             CryptoCode = "XMR",
             DisplayName = "Monero",
             Divisibility = 12,
-            DefaultRateRules = new[]
-            {
-                    "XMR_X = XMR_BTC * BTC_X",
+            DefaultRateRules =
+            [
+                "XMR_X = XMR_BTC * BTC_X",
                     "XMR_BTC = kraken(XMR_BTC)"
-                },
+            ],
             CryptoImagePath = "monero.svg",
             UriScheme = "monero"
         };
