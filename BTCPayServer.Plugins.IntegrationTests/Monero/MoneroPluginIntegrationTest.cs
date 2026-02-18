@@ -10,7 +10,7 @@ using Xunit.Abstractions;
 
 namespace BTCPayServer.Plugins.IntegrationTests.Monero;
 
-public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroAndBitcoinIntegrationTestBase(helper)
+public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroIntegrationTestBase(helper)
 {
     [Fact]
     public async Task ShouldEnableMoneroPluginSuccessfully()

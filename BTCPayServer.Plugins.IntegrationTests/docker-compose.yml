@@ -5,17 +5,14 @@ services:
       context: ..
       dockerfile: BTCPayServer.Plugins.IntegrationTests/Dockerfile
     environment:
-      TESTS_BTCRPCCONNECTION: server=http://bitcoind:43782;ceiwHEbqWI83:DwubwWsoo3
-      TESTS_BTCNBXPLORERURL: http://nbxplorer:32838/
       TESTS_POSTGRES: User ID=postgres;Include Error Detail=true;Host=postgres;Port=5432;Database=btcpayserver
-      TESTS_EXPLORER_POSTGRES: User ID=postgres;Include Error Detail=true;Host=postgres;Port=5432;Database=nbxplorer
       TESTS_HOSTNAME: tests
       TESTS_INCONTAINER: "true"
       BTCPAY_XMR_DAEMON_URI: http://monerod:18081
       BTCPAY_XMR_WALLET_DAEMON_URI: http://xmr_wallet:18082
       BTCPAY_XMR_WALLET_DAEMON_WALLETDIR: /wallet
+      BTCPAY_NODEFAULTCHAIN: "true"
     depends_on:
-      - nbxplorer
       - postgres
       - xmr_wallet
     extra_hosts:
@@ -30,64 +27,8 @@ services:
     container_name: dev
     command: [ "/bin/sh", "-c", "trap : TERM INT; while :; do echo Ready to code and debug like a rockstar!!!; sleep 2073600; done & wait" ]
     depends_on:
-      - nbxplorer
       - postgres
       - xmr_wallet
-
-  nbxplorer:
-    image: nicolasdorier/nbxplorer:2.5.25
-    container_name: nbxplorer
-    restart: unless-stopped
-    ports:
-      - "32838:32838"
-    expose:
-      - "32838"
-    environment:
-      NBXPLORER_NETWORK: regtest
-      NBXPLORER_CHAINS: "btc"
-      NBXPLORER_BTCRPCURL: http://bitcoind:43782/
-      NBXPLORER_BTCNODEENDPOINT: bitcoind:39388
-      NBXPLORER_BTCRPCUSER: ceiwHEbqWI83
-      NBXPLORER_BTCRPCPASSWORD: DwubwWsoo3
-      NBXPLORER_BIND: 0.0.0.0:32838
-      NBXPLORER_MINGAPSIZE: 5
-      NBXPLORER_MAXGAPSIZE: 10
-      NBXPLORER_VERBOSE: 1
-      NBXPLORER_POSTGRES: User ID=postgres;Include Error Detail=true;Host=postgres;Port=5432;Database=nbxplorer
-      NBXPLORER_EXPOSERPC: 1
-      NBXPLORER_NOAUTH: 1
-    depends_on:
-      - bitcoind
-
-  bitcoind:
-    restart: unless-stopped
-    image: btcpayserver/bitcoin:29.0
-    container_name: bitcoind
-    environment:
-      BITCOIN_NETWORK: regtest
-      BITCOIN_WALLETDIR: "/data/wallets"
-      BITCOIN_EXTRA_ARGS: |-
-        rpcuser=ceiwHEbqWI83
-        rpcpassword=DwubwWsoo3
-        rpcport=43782
-        rpcbind=0.0.0.0:43782
-        rpcallowip=0.0.0.0/0
-        port=39388
-        whitelist=0.0.0.0/0
-        zmqpubrawblock=tcp://0.0.0.0:28332
-        zmqpubrawtx=tcp://0.0.0.0:28333
-        deprecatedrpc=signrawtransaction
-        fallbackfee=0.0002
-    ports:
-      - "43782:43782"
-      - "39388:39388"
-    expose:
-      - "43782" # RPC
-      - "39388" # P2P
-      - "28332" # ZMQ
-      - "28333" # ZMQ
-    volumes:
-      - "bitcoin_datadir:/data"
 
   monerod:
     image: btcpayserver/monero:0.18.4.3
@@ -122,15 +63,5 @@ services:
       - "5432"
 
 volumes:
-  bitcoin_datadir:
   xmr_data:
   xmr_wallet:
-
-networks:
-  default:
-    driver: bridge
-  custom:
-    driver: bridge
-    ipam:
-      config:
-        - subnet: 172.23.0.0/16
