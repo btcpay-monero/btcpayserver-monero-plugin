@@ -1,28 +1,18 @@
 #!/bin/sh
 set -e
 
-dotCover cover-dotnet \
-  --TargetArguments="test -c ${CONFIGURATION_NAME} --no-build -v n" \
-  --Output=/coverage/dotCover.IntegrationTests.output.dcvr \
-  --filters="-:Assembly=BTCPayServer.Plugins.IntegrationTests;-:Assembly=Monero;-:Assembly=testhost;-:Assembly=BTCPayServer;-:Assembly=ExchangeSharp;-:Assembly=BTCPayServer.Tests;-:Assembly=BTCPayServer.Client;-:Assembly=BTCPayServer.Abstractions;-:Assembly=BTCPayServer.Data;-:Assembly=BTCPayServer.Common;-:Assembly=BTCPayServer.Logging;-:Assembly=BTCPayServer.Rating;-:Assembly=Dapper;-:Assembly=Serilog.Extensions.Logging;-:Class=AspNetCoreGeneratedDocument.*"
+dotCover cover \
+  --target-working-directory . \
+  --snapshot-output /coverage/dotCover.IntegrationTests.dcvr \
+  -- dotnet test -c Release . --no-build
+#  TODO: apply filters
+#  --filters="-:Assembly=BTCPayServer.Plugins.IntegrationTests;-:Assembly=testhost;-:Assembly=BTCPayServer;-:Assembly=ExchangeSharp;-:Assembly=BTCPayServer.Tests;-:Assembly=BTCPayServer.Client;-:Assembly=BTCPayServer.Abstractions;-:Assembly=BTCPayServer.Data;-:Assembly=BTCPayServer.Common;-:Assembly=BTCPayServer.Logging;-:Assembly=BTCPayServer.Rating;-:Assembly=Dapper;-:Assembly=Serilog.Extensions.Logging;-:Class=AspNetCoreGeneratedDocument.*"
 
 dotCover merge \
-  --Source=/coverage/dotCover.IntegrationTests.output.dcvr,/coverage/dotCover.UnitTests.output.dcvr \
-  --Output=/coverage/mergedCoverage.dcvr
+  --snapshot-source /coverage/dotCover.IntegrationTests.dcvr,/coverage/dotCover.UnitTests.dcvr \
+  --snapshot-output /coverage/mergedCoverage.dcvr
 
 dotCover report \
-  --Source=/coverage/mergedCoverage.dcvr \
-  --ReportType=HTML \
-  --Output=/coverage/mergedCoverage.html \
-  --ReportType=DetailedXML \
-  --Output=/coverage/dotcover.xml
-  
-dotCover report \
-  --Source=/coverage/dotCover.UnitTests.output.dcvr \
-  --ReportType=HTML \
-  --Output=/coverage/unitCoverage.html
-  
-dotCover report \
-  --Source=/coverage/dotCover.IntegrationTests.output.dcvr \
-  --ReportType=HTML \
-  --Output=/coverage/integrationCoverage.html
+  --snapshot-source /coverage/mergedCoverage.dcvr \
+  --xml-report-output /coverage/dotcover.xml \
+  --log-file /coverage/logfile.txt

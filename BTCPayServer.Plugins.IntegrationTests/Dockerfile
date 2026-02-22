@@ -21,8 +21,8 @@ COPY ../submodules/btcpayserver/BTCPayServer.Abstractions/. BTCPayServer.Abstrac
 COPY ../submodules/btcpayserver/BTCPayServer/. BTCPayServer/.
 COPY ../submodules/btcpayserver/Build/Version.csproj Build/Version.csproj
 
-ENV SCREEN_HEIGHT 600 \
-    SCREEN_WIDTH 1200
+ENV SCREEN_HEIGHT=600 \
+    SCREEN_WIDTH=1200
 
 COPY . .
 
@@ -31,7 +31,7 @@ ARG MONERO_PLUGIN_FOLDER=/root/.btcpayserver/Plugins/BTCPayServer.Plugins.Monero
 RUN mkdir -p ${MONERO_PLUGIN_FOLDER}
 RUN cd Plugins/Monero && dotnet build BTCPayServer.Plugins.Monero.sln --configuration ${CONFIGURATION_NAME} /p:RazorCompileOnBuild=true --output ${MONERO_PLUGIN_FOLDER}
 RUN cd BTCPayServer.Plugins.IntegrationTests && dotnet build --configuration ${CONFIGURATION_NAME} /p:CI_TESTS=true /p:RazorCompileOnBuild=true
-RUN dotnet tool install --global JetBrains.DotCover.CommandLineTools --version 2025.1.8
+RUN dotnet tool install --global JetBrains.DotCover.CommandLineTools --version 2026.1.0.1
 ENV PATH="$PATH:/root/.dotnet/tools"
 RUN pwsh /source/BTCPayServer.Plugins.IntegrationTests/bin/Release/net8.0/playwright.ps1 install chromium --with-deps
 WORKDIR /source/BTCPayServer.Plugins.IntegrationTests

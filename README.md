@@ -68,12 +68,12 @@ dotnet test BTCPayServer.Plugins.UnitTests --verbosity normal
 To run unit tests with coverage, install JetBrains dotCover CLI:
 
 ```bash
-dotnet tool install --global JetBrains.dotCover.CommandLineTools --version 2025.1.8
+dotnet tool install --global JetBrains.dotCover.CommandLineTools --version 2026.1.0.1
 ```
 Then run the following command:
 
 ```bash
-dotCover cover-dotnet --TargetArguments="test BTCPayServer.Plugins.UnitTests --no-build" --ReportType=HTML --Output=coverage/dotCover.UnitTests.output.html --ReportType=detailedXML --Output=coverage/dotCover.UnitTests.output.xml --filters="-:Assembly=BTCPayServer.Plugins.UnitTests;-:Assembly=testhost;-:Assembly=BTCPayServer;-:Class=AspNetCoreGeneratedDocument.*"
+dotCover cover --target-working-directory . --snapshot-output $(pwd)/coverage/dotCover.UnitTests.dcvr -- dotnet test BTCPayServer.Plugins.UnitTests -c Release --no-build
 ```
 
 To build and run integration tests, run the following commands:
@@ -99,7 +99,7 @@ Then create the `appsettings.dev.json` file in `btcpayserver/BTCPayServer`, with
 
 ```json
 {
-  "DEBUG_PLUGINS": "..\\..\\Plugins\\Monero\\bin\\Debug\\net8.0\\BTCPayServer.Plugins.Monero.dll",
+  "DEBUG_PLUGINS": "..\\..\\Plugins\\Monero\\bin\\Debug\\net10.0\\BTCPayServer.Plugins.Monero.dll",
   "XMR_DAEMON_URI": "http://127.0.0.1:18081",
   "XMR_WALLET_DAEMON_URI": "http://127.0.0.1:18082"
 }
