@@ -86,7 +86,6 @@ public class MoneroPlugin : BaseBTCPayServerPlugin
         services.AddSingleton(provider =>
 (ICheckoutModelExtension)ActivatorUtilities.CreateInstance(provider, typeof(MoneroCheckoutModelExtension), network, pmi));
 
-        services.AddUIExtension("store-nav", "/Views/Monero/StoreNavMoneroExtension.cshtml");
         services.AddUIExtension("store-wallets-nav", "/Views/Monero/StoreWalletsNavMoneroExtension.cshtml");
         services.AddUIExtension("store-invoices-payments", "/Views/Monero/ViewMoneroLikePaymentData.cshtml");
         services.AddSingleton<ISyncSummaryProvider, MoneroSyncSummaryProvider>();

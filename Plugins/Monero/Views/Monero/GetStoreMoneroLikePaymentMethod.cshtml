@@ -134,13 +134,6 @@
 
             <div class="form-group">
                 <button type="submit" class="btn btn-primary" id="SaveButton">Save</button>
-
-                <a class="btn btn-secondary" asp-action="GetStoreMoneroLikePaymentMethods"
-                   asp-route-storeId="@Context.GetRouteValue("storeId")"
-                   asp-route-cryptoCode="@Context.GetRouteValue("cryptoCode")"
-                   asp-controller="UIMoneroLikeStore">
-                    Back to list
-                </a>
             </div>
         </form>
     </div>

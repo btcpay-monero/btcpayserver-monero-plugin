@@ -45,13 +45,13 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroAndBi
             .FillAsync("1bfa03b0c78aa6bc8292cf160ec9875657d61e889c41d0ebe5c54fd3a2c4b40e");
         await s.Page.Locator("input#RestoreHeight").FillAsync("0");
         await s.Page.ClickAsync("button[name='command'][value='set-wallet-details']");
+        var message = await s.Page
+            .GetByText("View-only wallet created. The wallet will soon become available.")
+            .InnerTextAsync();
+        Assert.Contains("View-only wallet created", message);
         await s.Page.CheckAsync("#Enabled");
         await s.Page.SelectOptionAsync("#SettlementConfirmationThresholdChoice", "2");
         await s.Page.ClickAsync("#SaveButton");
-        var classList = await s.Page
-            .Locator("svg.icon-checkmark")
-            .GetAttributeAsync("class");
-        Assert.Contains("text-success", classList);
 
         // Set rate provider
         await s.Page.Locator("#menu-item-General").ClickAsync();

@@ -51,11 +51,6 @@ namespace BTCPayServer.Plugins.Monero.Controllers
 
         public StoreData StoreData => HttpContext.GetStoreData();
 
-        [HttpGet()]
-        public async Task<IActionResult> GetStoreMoneroLikePaymentMethods()
-        {
-            return View("/Views/Monero/GetStoreMoneroLikePaymentMethods.cshtml", await GetVM(StoreData));
-        }
         [NonAction]
         public async Task<MoneroLikePaymentMethodListViewModel> GetVM(StoreData storeData)
         {
@@ -274,8 +269,7 @@ namespace BTCPayServer.Plugins.Monero.Controllers
             blob.SetExcluded(PaymentTypes.CHAIN.GetPaymentMethodId(viewModel.CryptoCode), !viewModel.Enabled);
             storeData.SetStoreBlob(blob);
             await _StoreRepository.UpdateStore(storeData);
-            return RedirectToAction("GetStoreMoneroLikePaymentMethods",
-                new { StatusMessage = $"{cryptoCode} settings updated successfully", storeId = StoreData.Id });
+            return RedirectToAction("GetStoreMoneroLikePaymentMethod", new { cryptoCode });
         }
 
         public class MoneroLikePaymentMethodListViewModel
