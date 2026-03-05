@@ -1,6 +1,6 @@
 {
   "Identifier": "BTCPayServer.Plugins.Monero",
-  "Name": "BTCPay Server: Monero support plugin",
+  "Name": "Monero",
   "Version": "1.1.0",
   "Description": "This plugin extends BTCPay Server to enable users to receive payments via Monero.",
   "SystemPlugin": false,
