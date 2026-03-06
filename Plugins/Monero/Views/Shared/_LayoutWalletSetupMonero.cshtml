@@ -1,0 +1,22 @@
+@{
+    Layout = "_LayoutWizard";
+    var storeId = ViewContext.RouteData.Values["storeId"]?.ToString();
+}
+
+@section PageHeadContent {
+    @await RenderSectionAsync("PageHeadContent", false)
+}
+
+@section PageFootContent {
+    @await RenderSectionAsync("PageFootContent", false)
+}
+
+@section Navbar {
+    @await RenderSectionAsync("Navbar", false)
+
+    <a asp-controller="UIStores" asp-action="Dashboard" asp-route-storeId="@storeId" class="cancel">
+        <vc:icon symbol="cross" />
+    </a>
+}
+
+@RenderBody()

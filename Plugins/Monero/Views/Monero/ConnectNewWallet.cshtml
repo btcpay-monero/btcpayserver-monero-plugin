@@ -1,0 +1,79 @@
+@using MoneroLikePaymentMethodViewModel = BTCPayServer.Plugins.Monero.Controllers.UIMoneroLikeStoreController.MoneroLikePaymentMethodViewModel
+@model MoneroLikePaymentMethodViewModel
+
+@inject Microsoft.Extensions.Localization.IStringLocalizer StringLocalizer
+
+@{
+    Layout = "_LayoutWalletSetupMonero";
+    var title = StringLocalizer["Connect {0} Wallet", Model.CryptoCode];
+    ViewData.SetActivePage(Model.CryptoCode, title, Model.CryptoCode);
+}
+
+@section PageFootContent {
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+}
+
+<h2 class="text-center mb-4" text-translate="true">Connect a new wallet</h2>
+
+@if (!ViewContext.ModelState.IsValid)
+{
+    <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+}
+
+<form method="post" asp-action="ConnectNewWallet"
+      asp-route-storeId="@Context.GetRouteValue("storeId")"
+      asp-route-cryptoCode="@Context.GetRouteValue("cryptoCode")">
+
+    <div class="form-group">
+        <label asp-for="WalletName" class="form-label">Wallet Name</label>
+        <input type="text" class="form-control" asp-for="WalletName" required
+               pattern="[a-zA-Z0-9_-]+" maxlength="64"
+               placeholder="e.g., monero-store"
+               title="Wallet name must contain only letters, numbers, dashes, and underscores">
+        <div class="form-text">A unique name to identify this wallet (letters, numbers, dashes, and underscores only)</div>
+        <span asp-validation-for="WalletName" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="PrimaryAddress" class="form-label">Wallet Primary Address</label>
+        <input type="text" class="form-control" asp-for="PrimaryAddress" required placeholder="Enter your Monero wallet address">
+        <span asp-validation-for="PrimaryAddress" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="PrivateViewKey" class="form-label">Private View Key</label>
+        <input type="text" class="form-control" asp-for="PrivateViewKey" required placeholder="Enter your private view key">
+        <span asp-validation-for="PrivateViewKey" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="RestoreHeight" class="form-label">Restore Height (Block Height)</label>
+        <input type="number" class="form-control" asp-for="RestoreHeight" required placeholder="0">
+        <div class="form-text">Use 0 to scan from the beginning, or use a block height close to when your wallet was created to speed up syncing</div>
+        <span asp-validation-for="RestoreHeight" class="text-danger"></span>
+    </div>
+    
+    <div class="alert alert-info mt-4">
+        <vc:icon symbol="info" />
+        <strong>Note:</strong> BTCPay Server will create a view-only wallet using your private view key.
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-12">
+            <button name="command" value="connect-wallet" class="btn btn-primary btn-lg w-100" type="submit">
+                Connect Wallet
+            </button>
+        </div>
+    </div>
+
+    <div class="row mt-3">
+        <div class="col-12 text-center">
+            <a asp-controller="UIMoneroLikeStore" asp-action="SetupMoneroWallet"
+               asp-route-storeId="@Context.GetRouteValue("storeId")"
+               asp-route-cryptoCode="@Model.CryptoCode"
+               class="btn btn-link">
+                <vc:icon symbol="arrow-left" /> Back to setup options
+            </a>
+        </div>
+    </div>
+</form>

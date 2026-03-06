@@ -9,142 +9,456 @@
 
 <partial name="_StatusMessage" />
 
+@if (Model.HasDeprecatedPasswordFile)
+{
+    <div class="alert alert-warning mb-4" role="alert">
+        <vc:icon symbol="warning" />
+        <strong>Deprecated password file detected.</strong>
+        A password file was found in the wallet directory. This file is no longer needed and should be deleted.
+    </div>
+}
+
+@if (Model.WalletState?.IsInitialized != true)
+{
+    <div class="alert alert-info alert-dismissible mb-4" role="alert">
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close">
+            <vc:icon symbol="close" />
+        </button>
+        <h5 class="alert-heading">
+            No Wallet Configured <vc:icon symbol="info" />
+        </h5>
+        <p class="mb-3">
+            To accept Monero, you need to configure a wallet.
+        </p>
+        <div class="d-flex gap-2">
+            <a href="@Url.Action("ConnectNewWallet", new { storeId = Context.GetRouteValue("storeId"), cryptoCode = Model.CryptoCode })" class="btn btn-primary">
+                Create Wallet
+            </a>
+            <a href="https://www.getmonero.org/downloads/" target="_blank" rel="noopener noreferrer" class="btn btn-outline-dark">
+                Learn More
+            </a>
+        </div>
+    </div>
+}
+
 <div class="row">
     <div class="col-md-8">
         @if (!ViewContext.ModelState.IsValid)
         {
-            <div asp-validation-summary="All"></div>
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
         }
         @if (Model.Summary != null)
         {
             <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Connection Status</h5>
+                </div>
                 <ul class="list-group list-group-flush">
-                    <li class="list-group-item">Node available: @Model.Summary.DaemonAvailable</li>
-                    <li class="list-group-item">Wallet RPC available: @Model.Summary.WalletAvailable</li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Node available: 
+                        <span class="badge bg-@(Model.Summary.DaemonAvailable ? "success" : "danger")">
+                            @Model.Summary.DaemonAvailable
+                        </span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        Wallet RPC available: 
+                        <span class="badge bg-@(Model.Summary.WalletAvailable ? "success" : "danger")">
+                            @Model.Summary.WalletAvailable
+                        </span>
+                    </li>
                     <li class="list-group-item">Last updated: @Model.Summary.UpdatedAt</li>
                     <li class="list-group-item">Synced: @Model.Summary.Synced (@Model.Summary.CurrentHeight / @Model.Summary.TargetHeight)</li>
                 </ul>
             </div>
-        }
 
-        @if (Model.Summary?.WalletHeight is null or 0)
-        {
+            @if (Model.WalletState?.IsInitialized == true || Model.WalletState?.Wallets.Count > 0)
+            {
+                <div class="card mt-3">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Wallet</h5>
+                        <div class="dropdown">
+                            <button class="btn btn-link dropdown-toggle p-0 dropdown-toggle-no-caret" type="button" id="walletManagementMenu" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Wallet management options">
+                                <vc:icon symbol="dots" />
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="walletManagementMenu">
+                                <li>
+                                    <button class="dropdown-item" type="button" data-bs-toggle="modal" data-bs-target="#createWalletModal">
+                                        <vc:icon symbol="actions-add" /> Create New Wallet
+                                    </button>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="card-body px-0">
+                        @if (!Model.Summary.WalletAvailable && Model.HasActiveWallet)
+                        {
+                            <div class="alert alert-danger mb-3">
+                                <vc:icon symbol="warning" />
+                                <strong>Warning:</strong> Configured wallet @Model.WalletState.ActiveWalletName could not be opened.
+                                The wallet could not be opened. Confirm the wallet files exist and try again.
+                            </div>
+                        }
+
+                        @if (!Model.HasActiveWallet && Model.WalletState?.Wallets.Count > 0)
+                        {
+                            <div class="alert alert-warning mb-3">
+                                <vc:icon symbol="info" /> No wallet selected - click on a wallet row below to activate it.
+                            </div>
+                        }
+
+                        @if (Model.WalletState?.Wallets.Count > 0)
+                        {
+                            <div class="d-flex flex-column gap-3 px-3 pb-3">
+                                @foreach (var wallet in Model.WalletState.Wallets)
+                                {
+                                    var walletAddress = wallet.Key;
+                                    var walletName = wallet.Value;
+                                    var isActive = walletAddress == Model.WalletState.ActiveWalletAddress;
+                                    var isConnected = isActive && Model.Summary.WalletAvailable;
+                                    var isFailed = isActive && !Model.Summary.WalletAvailable;
+
+                                    <div class="wallet-card @(isActive ? "wallet-card-active" : "")" data-wallet="@walletAddress" data-wallet-name="@walletName">
+                                        <div class="wallet-card-content d-flex justify-content-between align-items-center p-3">
+                                            <div class="d-flex align-items-center gap-2 flex-wrap flex-grow-1">
+                                                <div class="fw-semibold">@walletName</div>
+                                                <div class="d-flex gap-2 flex-wrap align-items-center">
+                                                    @if (isConnected)
+                                                    {
+                                                        <span class="badge bg-success">
+                                                            <vc:icon symbol="wallet-watchonly" /> Connected
+                                                        </span>
+                                                    }
+                                                    else if (isFailed)
+                                                    {
+                                                        <span class="badge bg-danger">
+                                                            <vc:icon symbol="cross" /> Failed
+                                                        </span>
+                                                    }
+                                                    @if (!isActive)
+                                                    {
+                                                        <span class="badge bg-secondary">Available</span>
+                                                    }
+                                                </div>
+                                            </div>
+                                            <div class="wallet-actions">
+                                                <div class="dropdown">
+                                                    <button class="btn btn-link dropdown-toggle p-0 dropdown-toggle-no-caret" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Wallet actions">
+                                                        <vc:icon symbol="dots" />
+                                                    </button>
+                                                    <ul class="dropdown-menu dropdown-menu-end">
+                                                        @if (!isActive)
+                                                        {
+                                                            <li>
+                                                                <button class="dropdown-item wallet-action-activate" type="button" data-wallet="@walletAddress" data-wallet-name="@walletName">
+                                                                    <vc:icon symbol="checkmark" /> Set Active
+                                                                </button>
+                                                            </li>
+                                                            <li><hr class="dropdown-divider"></li>
+                                                        }
+                                                        <li>
+                                                            <button type="button"
+                                                                    class="dropdown-item text-danger wallet-action-delete"
+                                                                    data-wallet="@walletAddress"
+                                                                    data-wallet-name="@walletName">
+                                                                <vc:icon symbol="cross" /> Delete Wallet
+                                                            </button>
+                                                        </li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="px-3">
+                                <p class="text-muted">No wallets available.</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <form method="post" asp-action="GetStoreMoneroLikePaymentMethod"
+                      asp-route-storeId="@Context.GetRouteValue("storeId")"
+                      asp-route-cryptoCode="@Context.GetRouteValue("cryptoCode")"
+                      class="card mt-3">
+
+                    <div class="card-header">
+                        <h5 class="mb-0">Payment Settings</h5>
+                    </div>
+                    <div class="card-body">
+                        <input type="hidden" asp-for="CryptoCode"/>
+                        @if (Model.Summary?.WalletHeight is null or 0)
+                        {
+                            <input type="hidden" asp-for="AccountIndex"/>
+                        }
+                        else
+                        {
+                            <div class="form-group">
+                                <label asp-for="AccountIndex" class="control-label"></label>
+                                @if (@Model.Accounts != null && Model.Accounts.Any())
+                                {
+                                    <select asp-for="AccountIndex" asp-items="Model.Accounts" class="form-control"></select>
+                                    <span asp-validation-for="AccountIndex" class="text-danger"></span>
+                                }
+                                else
+                                {
+                                    <span>No accounts available on the current wallet</span>
+                                    <input type="hidden" asp-for="AccountIndex"/>
+                                }
+                            </div>
+                            <div class="form-group">
+                                <div class="input-group my-3">
+                                    <input type="text" class="form-control" placeholder="@StringLocalizer["New account label"]" asp-for="NewAccountLabel">
+                                    <button name="command" value="add-account" class="input-group-text btn btn-secondary" type="submit">Add account</button>
+                                </div>
+                            </div>
+                        }
+
+                        <div class="form-group">
+                            <input asp-for="Enabled" type="checkbox" class="btcpay-toggle me-3" disabled="@(!Model.HasActiveWallet)"/>
+                            <label asp-for="Enabled" class="form-check-label"></label>
+                            @if (!Model.HasActiveWallet)
+                            {
+                                <div class="form-text text-muted">
+                                    <vc:icon symbol="info" /> Activate a wallet to enable Monero payments
+                                </div>
+                            }
+                            <span asp-validation-for="Enabled" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-group">
+                            <label asp-for="SettlementConfirmationThresholdChoice" class="form-label"></label>
+                            <a href="https://docs.btcpayserver.org/FAQ/Stores/#consider-the-invoice-confirmed-when-the-payment-transaction" target="_blank" rel="noreferrer noopener" title="@StringLocalizer["More information..."]">
+                                <vc:icon symbol="info" />
+                            </a>
+                            <select
+                                asp-for="SettlementConfirmationThresholdChoice"
+                                asp-items="Html.GetEnumSelectList<MoneroLikeSettlementThresholdChoice>()"
+                                class="form-select w-auto"
+                                onchange="
+                                    document.getElementById('unconfirmed-warning').hidden = this.value !== '@((int)MoneroLikeSettlementThresholdChoice.ZeroConfirmation)';
+                                    document.getElementById('custom-confirmation-value').hidden = this.value !== '@((int)MoneroLikeSettlementThresholdChoice.Custom)';">
+                            </select>
+                            <span asp-validation-for="SettlementConfirmationThresholdChoice" class="text-danger"></span>
+                            <p class="info-note my-3 text-warning" id="unconfirmed-warning" role="alert" hidden="@(Model.SettlementConfirmationThresholdChoice is not MoneroLikeSettlementThresholdChoice.ZeroConfirmation)">
+                                <vc:icon symbol="warning" />
+                                <span text-translate="true">Choosing to accept an unconfirmed invoice can lead to double-spending and is strongly discouraged.</span>
+                            </p>
+                        </div>
+
+                        <div class="form-group" id="custom-confirmation-value" hidden="@(Model.SettlementConfirmationThresholdChoice is not MoneroLikeSettlementThresholdChoice.Custom)">
+                            <label asp-for="CustomSettlementConfirmationThreshold" class="form-label"></label>
+                            <input
+                                asp-for="CustomSettlementConfirmationThreshold"
+                                type="number"
+                                value="@(Model.CustomSettlementConfirmationThreshold)"
+                                class="form-control w-auto"
+                                min="0"
+                                max="100"
+                                pattern="\d+"
+                            />
+                            <span asp-validation-for="CustomSettlementConfirmationThreshold" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary" id="SaveButton">Save</button>
+                        </div>
+                    </div>
+                </form>
+            }
+        }
+    </div>
+</div>
+
+<div class="modal fade" id="switchWalletModal" tabindex="-1" aria-labelledby="switchWalletModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
             <form method="post" asp-action="GetStoreMoneroLikePaymentMethod"
                   asp-route-storeId="@Context.GetRouteValue("storeId")"
-                  asp-route-cryptoCode="@Context.GetRouteValue("cryptoCode")"
-                  class="mt-4">
-
-                <div class="card my-2">
-                    <h3 class="card-title p-2">Set View-Only Wallet Details</h3>
-
-                    <div class="form-group p-2">
-                        <label asp-for="PrimaryAddress" class="form-label">Wallet Primary Address</label>
-                        <input type="text" class="form-control" asp-for="PrimaryAddress" required>
-                        <span asp-validation-for="PrimaryAddress" class="text-danger"></span>
+                  asp-route-cryptoCode="@Context.GetRouteValue("cryptoCode")">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="switchWalletModalLabel">Activate Wallet</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+                        <vc:icon symbol="close" />
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" asp-for="NewActiveWallet" id="switchWalletName" />
+                    <div class="alert alert-warning">
+                        <vc:icon symbol="warning" />
+                        <strong>Warning:</strong> Switching wallets affects all stores with Monero enabled. Complete any pending invoices before continuing.
                     </div>
-                    <div class="form-group p-2">
-                        <label asp-for="PrivateViewKey" class="form-label">Wallet Private View Key</label>
-                        <input type="text" class="form-control" asp-for="PrivateViewKey" required>
-                        <span asp-validation-for="PrivateViewKey" class="text-danger"></span>
-                    </div>
-                    <div class="form-group p-2">
-                        <label asp-for="RestoreHeight" class="form-label">Restore Height (Block Height)</label>
-                        <input type="number" class="form-control" asp-for="RestoreHeight" required>
-                        <span asp-validation-for="RestoreHeight" class="text-danger"></span>
-                    </div>
-                    <div class="card-footer text-right">
-                        <button name="command" value="set-wallet-details" class="btn btn-secondary" type="submit">Set Wallet Details</button>
-                    </div>
+                    <p>Activating wallet: <strong id="switchWalletDisplay"></strong></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" name="command" value="set-active-wallet" class="btn btn-primary">
+                        Activate Wallet
+                    </button>
                 </div>
             </form>
-        }
-        <form method="post" asp-action="GetStoreMoneroLikePaymentMethod"
-              asp-route-storeId="@Context.GetRouteValue("storeId")"
-              asp-route-cryptoCode="@Context.GetRouteValue("cryptoCode")"
-              class="mt-4" enctype="multipart/form-data">
+        </div>
+    </div>
+</div>
 
-            <input type="hidden" asp-for="CryptoCode"/>
-            @if (Model.Summary?.WalletHeight is null or 0)
-            {
-                <input type="hidden" asp-for="AccountIndex"/>
-            }
-            else
-            {
-                <div class="form-group">
-                    <label asp-for="AccountIndex" class="control-label"></label>
-                    @if (@Model.Accounts != null && Model.Accounts.Any())
-                    {
-                        <select asp-for="AccountIndex" asp-items="Model.Accounts" class="form-control"></select>
-                        <span asp-validation-for="AccountIndex" class="text-danger"></span>
-                    }
-                    else
-                    {
-                        <span>No accounts available on the current wallet</span>
-                        <input type="hidden" asp-for="AccountIndex"/>
-                    }
+<div class="modal fade" id="createWalletModal" tabindex="-1" aria-labelledby="createWalletModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="post" asp-action="GetStoreMoneroLikePaymentMethod"
+                  asp-route-storeId="@Context.GetRouteValue("storeId")"
+                  asp-route-cryptoCode="@Context.GetRouteValue("cryptoCode")">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="createWalletModalLabel">Create New Wallet</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+                        <vc:icon symbol="close" />
+                    </button>
                 </div>
-                <div class="form-group">
-                    <div class="input-group my-3">
-                        <input type="text" class="form-control" placeholder="@StringLocalizer["New account label"]" asp-for="NewAccountLabel">
-                        <button name="command" value="add-account" class="input-group-text btn btn-secondary" type="submit">Add account</button>
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <vc:icon symbol="info" />
+                        Create a view-only wallet using your Monero wallet's primary address and private view key.
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="WalletName" class="form-label">Wallet Name</label>
+                                <input type="text" class="form-control" asp-for="WalletName"
+                                       pattern="[a-zA-Z0-9_-]+" maxlength="64"
+                                       placeholder="e.g., my-store-wallet"
+                                       title="Wallet name must contain only letters, numbers, dashes, and underscores"
+                                       required />
+                                <div class="form-text">A unique name to identify this wallet (letters, numbers, dashes, and underscores only)</div>
+                                <span asp-validation-for="WalletName" class="text-danger"></span>
+                            </div>
+                            <div class="mb-3">
+                                <label asp-for="PrimaryAddress" class="form-label">Primary Address</label>
+                                <input type="text" class="form-control" asp-for="PrimaryAddress" required />
+                                <span asp-validation-for="PrimaryAddress" class="text-danger"></span>
+                            </div>
+                            <div class="mb-3">
+                                <label asp-for="PrivateViewKey" class="form-label">Private View Key</label>
+                                <input type="text" class="form-control" asp-for="PrivateViewKey" required />
+                                <span asp-validation-for="PrivateViewKey" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label asp-for="RestoreHeight" class="form-label">Restore Height</label>
+                                <input type="number" class="form-control" asp-for="RestoreHeight" placeholder="0" required />
+                                <div class="form-text">Block height to start scanning from (0 for full scan)</div>
+                                <span asp-validation-for="RestoreHeight" class="text-danger"></span>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            }
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" name="command" value="add-wallet" class="btn btn-success">
+                        Create Wallet
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
-            <div class="form-group">
-                <label asp-for="Enabled"></label>
-                <input asp-for="Enabled" type="checkbox" class="form-check"/>
-                <span asp-validation-for="Enabled" class="text-danger"></span>
-            </div>
-
-            <div class="form-group">
-                <label asp-for="SettlementConfirmationThresholdChoice" class="form-label"></label>
-                <a href="https://docs.btcpayserver.org/FAQ/Stores/#consider-the-invoice-confirmed-when-the-payment-transaction" target="_blank" rel="noreferrer noopener" title="@StringLocalizer["More information..."]">
-                    <vc:icon symbol="info" />
-                </a>
-                <select
-                    asp-for="SettlementConfirmationThresholdChoice"
-                    asp-items="Html.GetEnumSelectList<MoneroLikeSettlementThresholdChoice>()"
-                    class="form-select w-auto"
-                    onchange="
-                        document.getElementById('unconfirmed-warning').hidden = this.value !== '@((int)MoneroLikeSettlementThresholdChoice.ZeroConfirmation)';
-                        document.getElementById('custom-confirmation-value').hidden = this.value !== '@((int)MoneroLikeSettlementThresholdChoice.Custom)';">
-                </select>
-                <span asp-validation-for="SettlementConfirmationThresholdChoice" class="text-danger"></span>
-                <p class="info-note my-3 text-warning" id="unconfirmed-warning" role="alert" hidden="@(Model.SettlementConfirmationThresholdChoice is not MoneroLikeSettlementThresholdChoice.ZeroConfirmation)">
-                    <vc:icon symbol="warning" />
-                    <span text-translate="true">Choosing to accept an unconfirmed invoice can lead to double-spending and is strongly discouraged.</span>
-                </p>
-            </div>
-
-            <div class="form-group" id="custom-confirmation-value" hidden="@(Model.SettlementConfirmationThresholdChoice is not MoneroLikeSettlementThresholdChoice.Custom)">
-                <label asp-for="CustomSettlementConfirmationThreshold" class="form-label"></label>
-                <input
-                    asp-for="CustomSettlementConfirmationThreshold"
-                    type="number"
-                    value="@(Model.CustomSettlementConfirmationThreshold)"
-                    class="form-control w-auto"
-                    min="0"
-                    max="100"
-                    pattern="\d+"
-                />
-                <span asp-validation-for="CustomSettlementConfirmationThreshold" class="text-danger"></span>
-            </div>
-
-            <div class="form-group">
-                <button type="submit" class="btn btn-primary" id="SaveButton">Save</button>
-
-                <a class="btn btn-secondary" asp-action="GetStoreMoneroLikePaymentMethods"
-                   asp-route-storeId="@Context.GetRouteValue("storeId")"
-                   asp-route-cryptoCode="@Context.GetRouteValue("cryptoCode")"
-                   asp-controller="UIMoneroLikeStore">
-                    Back to list
-                </a>
-            </div>
-        </form>
+<div class="modal fade" id="deleteWalletModal" tabindex="-1" aria-labelledby="deleteWalletModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" asp-action="GetStoreMoneroLikePaymentMethod"
+                  asp-route-storeId="@Context.GetRouteValue("storeId")"
+                  asp-route-cryptoCode="@Context.GetRouteValue("cryptoCode")">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteWalletModalLabel">Delete Wallet</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
+                        <vc:icon symbol="close" />
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="WalletToDelete" id="deleteWalletAddress" />
+                    <div class="alert alert-danger">
+                        <vc:icon symbol="warning" />
+                        <strong>Warning:</strong> This action cannot be undone.
+                    </div>
+                    <p>Are you sure you want to delete wallet <strong id="deleteWalletDisplay"></strong>?</p>
+                    <p>Be aware, reimport of this wallet can cause invoice errors.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" name="command" value="delete-wallet" class="btn btn-danger">
+                        Delete Wallet
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
 @section PageFootContent {
     @await Html.PartialAsync("_ValidationScriptsPartial")
+    <style>
+        .wallet-card {
+            background: var(--btcpay-bg-tile);
+            border: 1px solid var(--btcpay-border-color);
+            border-radius: 8px;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .wallet-card:hover {
+            border-color: var(--btcpay-primary);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .wallet-card-content {
+            cursor: pointer;
+            user-select: none;
+        }
+    </style>
+    <script>
+        const currentActiveAddress = '@Model.WalletState?.ActiveWalletAddress';
+        const walletAvailable = @((Model.Summary?.WalletAvailable ?? false) ? "true" : "false");
+
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.wallet-action-activate')) {
+                const btn = e.target.closest('.wallet-action-activate');
+                const walletAddress = btn.getAttribute('data-wallet');
+                const walletName = btn.getAttribute('data-wallet-name');
+                showSwitchModal(walletAddress, walletName);
+                return;
+            }
+
+            if (e.target.closest('.wallet-action-delete')) {
+                const btn = e.target.closest('.wallet-action-delete');
+                const walletAddress = btn.getAttribute('data-wallet');
+                const walletName = btn.getAttribute('data-wallet-name');
+                showDeleteModal(walletAddress, walletName);
+                return;
+            }
+
+            const cardContent = e.target.closest('.wallet-card-content');
+            if (cardContent && !e.target.closest('.wallet-actions')) {
+                const walletCard = cardContent.closest('.wallet-card');
+                const walletAddress = walletCard.getAttribute('data-wallet');
+                const walletName = walletCard.getAttribute('data-wallet-name');
+                if (walletAddress !== currentActiveAddress || !walletAvailable) {
+                    showSwitchModal(walletAddress, walletName);
+                }
+            }
+        });
+
+        function showSwitchModal(walletAddress, walletName) {
+            document.getElementById('switchWalletName').value = walletAddress;
+            document.getElementById('switchWalletDisplay').textContent = walletName;
+            new bootstrap.Modal(document.getElementById('switchWalletModal')).show();
+        }
+
+        function showDeleteModal(walletAddress, walletName) {
+            document.getElementById('deleteWalletAddress').value = walletAddress;
+            document.getElementById('deleteWalletDisplay').textContent = walletName;
+            new bootstrap.Modal(document.getElementById('deleteWalletModal')).show();
+        }
+    </script>
 }

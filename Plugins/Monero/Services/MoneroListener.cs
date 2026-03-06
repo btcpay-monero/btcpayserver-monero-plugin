@@ -8,6 +8,7 @@ using BTCPayServer.Client.Models;
 using BTCPayServer.Data;
 using BTCPayServer.Events;
 using BTCPayServer.HostedServices;
+using BTCPayServer.Logging;
 using BTCPayServer.Payments;
 using BTCPayServer.Plugins.Monero.Configuration;
 using BTCPayServer.Plugins.Monero.Payments;
@@ -32,7 +33,7 @@ namespace BTCPayServer.Plugins.Monero.Services
         private readonly MoneroRpcProvider _moneroRpcProvider;
         private readonly MoneroLikeConfiguration _MoneroLikeConfiguration;
         private readonly BTCPayNetworkProvider _networkProvider;
-        private readonly ILogger<MoneroListener> _logger;
+        private readonly Logs _logs;
         private readonly PaymentMethodHandlerDictionary _handlers;
         private readonly InvoiceActivator _invoiceActivator;
         private readonly PaymentService _paymentService;
@@ -42,17 +43,17 @@ namespace BTCPayServer.Plugins.Monero.Services
             MoneroRpcProvider moneroRpcProvider,
             MoneroLikeConfiguration moneroLikeConfiguration,
             BTCPayNetworkProvider networkProvider,
-            ILogger<MoneroListener> logger,
+            Logs logs,
             PaymentMethodHandlerDictionary handlers,
             InvoiceActivator invoiceActivator,
-            PaymentService paymentService) : base(eventAggregator, logger)
+            PaymentService paymentService) : base(eventAggregator, logs)
         {
             _invoiceRepository = invoiceRepository;
             _eventAggregator = eventAggregator;
             _moneroRpcProvider = moneroRpcProvider;
             _MoneroLikeConfiguration = moneroLikeConfiguration;
             _networkProvider = networkProvider;
-            _logger = logger;
+            _logs = logs;
             _handlers = handlers;
             _invoiceActivator = invoiceActivator;
             _paymentService = paymentService;
@@ -71,12 +72,12 @@ namespace BTCPayServer.Plugins.Monero.Services
             {
                 if (_moneroRpcProvider.IsAvailable(stateChange.CryptoCode))
                 {
-                    _logger.LogInformation($"{stateChange.CryptoCode} just became available");
+                    _logs.PayServer.LogInformation($"{stateChange.CryptoCode} just became available");
                     _ = UpdateAnyPendingMoneroLikePayment(stateChange.CryptoCode);
                 }
                 else
                 {
-                    _logger.LogInformation($"{stateChange.CryptoCode} just became unavailable");
+                    _logs.PayServer.LogInformation($"{stateChange.CryptoCode} just became unavailable");
                 }
             }
             else if (evt is MoneroEvent moneroEvent)
@@ -100,7 +101,7 @@ namespace BTCPayServer.Plugins.Monero.Services
 
         private async Task ReceivedPayment(InvoiceEntity invoice, PaymentEntity payment)
         {
-            _logger.LogInformation(
+            _logs.PayServer.LogInformation(
                 $"Invoice {invoice.Id} received payment {payment.Value} {payment.Currency} {payment.Id}");
 
             var prompt = invoice.GetPaymentPrompt(payment.PaymentMethodId);

@@ -1,0 +1,45 @@
+@using MoneroLikePaymentMethodViewModel = BTCPayServer.Plugins.Monero.Controllers.UIMoneroLikeStoreController.MoneroLikePaymentMethodViewModel
+@model MoneroLikePaymentMethodViewModel
+
+@inject Microsoft.Extensions.Localization.IStringLocalizer StringLocalizer
+
+@{
+    Layout = "_LayoutWalletSetupMonero";
+    var title = StringLocalizer["Setup {0} Wallet", Model.CryptoCode];
+    ViewData.SetActivePage(Model.CryptoCode, title, Model.CryptoCode);
+}
+
+<h1 class="text-center" text-translate="true">Let's get started</h1>
+<br>
+<div class="mt-5">
+    <h3 class="my-4" text-translate="true">I have a wallet</h3>
+    <div class="list-group">
+        <a asp-controller="UIMoneroLikeStore" asp-action="ConnectNewWallet" asp-route-storeId="@Context.GetRouteValue("storeId")" asp-route-cryptoCode="@Model.CryptoCode" id="ConnectWalletLink" class="list-group-item list-group-item-action">
+            <div class="image">
+                <vc:icon symbol="wallet-existing"/>
+            </div>
+            <div class="content">
+                <h4 text-translate="true">Connect a wallet</h4>
+                <p class="mb-0 text-secondary" text-translate="true">Connect your Monero wallet using view key</p>
+            </div>
+            <vc:icon symbol="caret-right" />
+        </a>
+    </div>
+</div>
+
+<br>
+<div class="mt-5">
+    <h3 class="my-4" text-translate="true">I don't have a wallet</h3>
+    <div class="list-group">
+        <a href="https://www.getmonero.org/downloads/" target="_blank" rel="noopener noreferrer" id="CreateWalletLink" class="list-group-item list-group-item-action">
+            <div class="image">
+                <vc:icon symbol="wallet-new"/>
+            </div>
+            <div class="content">
+                <h4 text-translate="true">Create a new wallet</h4>
+                <p class="mb-0 text-secondary" text-translate="true">Learn how to create a Monero wallet</p>
+            </div>
+            <vc:icon symbol="caret-right"/>
+        </a>
+    </div>
+</div>
