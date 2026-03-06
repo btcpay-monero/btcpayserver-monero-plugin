@@ -6,5 +6,6 @@ namespace BTCPayServer.Plugins.Monero.RPC.Models
     {
         [JsonProperty("account_index")] public long AccountIndex { get; set; }
         [JsonProperty("label")] public string Label { get; set; }
+        [JsonProperty("count")] public long? Count { get; set; }
     }
 }

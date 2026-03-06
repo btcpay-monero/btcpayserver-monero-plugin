@@ -2,7 +2,6 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 
-using BTCPayServer.Logging;
 using BTCPayServer.Plugins.Monero.Configuration;
 
 using Microsoft.Extensions.Hosting;
@@ -14,15 +13,14 @@ namespace BTCPayServer.Plugins.Monero.Services
     {
         private readonly MoneroRpcProvider _MoneroRpcProvider;
         private readonly MoneroLikeConfiguration _moneroLikeConfiguration;
-
-        public Logs Logs { get; }
+        private readonly ILogger<MoneroLikeSummaryUpdaterHostedService> _logger;
 
         private CancellationTokenSource _Cts;
-        public MoneroLikeSummaryUpdaterHostedService(MoneroRpcProvider moneroRpcProvider, MoneroLikeConfiguration moneroLikeConfiguration, Logs logs)
+        public MoneroLikeSummaryUpdaterHostedService(MoneroRpcProvider moneroRpcProvider, MoneroLikeConfiguration moneroLikeConfiguration, ILogger<MoneroLikeSummaryUpdaterHostedService> logger)
         {
             _MoneroRpcProvider = moneroRpcProvider;
             _moneroLikeConfiguration = moneroLikeConfiguration;
-            Logs = logs;
+            _logger = logger;
         }
         public Task StartAsync(CancellationToken cancellationToken)
         {
@@ -36,7 +34,7 @@ namespace BTCPayServer.Plugins.Monero.Services
 
         private async Task StartLoop(CancellationToken cancellation, string cryptoCode)
         {
-            Logs.PayServer.LogInformation($"Starting listening Monero-like daemons ({cryptoCode})");
+            _logger.LogInformation($"Starting listening Monero-like daemons ({cryptoCode})");
             try
             {
                 while (!cancellation.IsCancellationRequested)
@@ -55,7 +53,7 @@ namespace BTCPayServer.Plugins.Monero.Services
                     }
                     catch (Exception ex) when (!cancellation.IsCancellationRequested)
                     {
-                        Logs.PayServer.LogError(ex, $"Unhandled exception in Summary updater ({cryptoCode})");
+                        _logger.LogError(ex, $"Unhandled exception in Summary updater ({cryptoCode})");
                         await Task.Delay(TimeSpan.FromSeconds(10), cancellation);
                     }
                 }
