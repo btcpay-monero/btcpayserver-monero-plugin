@@ -11,7 +11,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Extract GitRef (version tag)
         run: echo "GIT_REF=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
