@@ -164,8 +164,8 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroAndBi
     [Fact]
     public async Task ShouldLoadViewWalletOnStartUpIfExists()
     {
+        await IntegrationTestUtils.CreateTestXmrWalletFilesViaRpc("");
         await using var s = CreatePlaywrightTester();
-        await IntegrationTestUtils.CopyWalletFilesToMoneroRpcDirAsync(s, "wallet");
         await s.StartAsync();
         await s.RegisterNewUser(true);
         await s.CreateNewStore();
@@ -183,8 +183,8 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroAndBi
     [Fact]
     public async Task ShouldLoadViewWalletWithPasswordOnStartUpIfExists()
     {
+        await IntegrationTestUtils.CreateTestXmrWalletWithPasswordAsync("pass123", "wallet_password");
         await using var s = CreatePlaywrightTester();
-        await IntegrationTestUtils.CopyWalletFilesToMoneroRpcDirAsync(s, "wallet_password");
         await s.StartAsync();
         await s.RegisterNewUser(true);
         await s.CreateNewStore();

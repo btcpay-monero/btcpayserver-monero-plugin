@@ -68,7 +68,7 @@ dotnet test BTCPayServer.Plugins.UnitTests --verbosity normal
 To run unit tests with coverage, install JetBrains dotCover CLI:
 
 ```bash
-dotnet tool install --global JetBrains.dotCover.CommandLineTools --version 2025.1.6
+dotnet tool install --global JetBrains.dotCover.CommandLineTools --version 2025.1.8
 ```
 Then run the following command:
 
