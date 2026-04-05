@@ -74,6 +74,7 @@ namespace BTCPayServer.Plugins.Monero.Payments
             var invoice = context.InvoiceEntity;
             var feeRatePerKb = await moneroPrepare.GetFeeRate;
             var address = await moneroPrepare.ReserveAddress(invoice.Id);
+            await _moneroRpcProvider.StoreWallet(_network.CryptoCode);
 
             var feeRatePerByte = feeRatePerKb.Fee / 1024;
             var details = new MoneroLikeOnChainPaymentMethodDetails()
