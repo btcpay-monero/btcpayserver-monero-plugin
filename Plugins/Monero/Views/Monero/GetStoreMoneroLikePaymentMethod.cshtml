@@ -9,6 +9,14 @@
 
 <partial name="_StatusMessage" />
 
+@if (Model.HasDeprecatedPasswordFile)
+{
+    <div class="alert alert-warning" role="alert">
+        <strong>Password file deprecation complete.</strong>
+        The wallet password has been removed. Please delete the password file from your wallet directory to complete the deprecation.
+    </div>
+}
+
 <div class="row">
     <div class="col-md-8">
         @if (!ViewContext.ModelState.IsValid)

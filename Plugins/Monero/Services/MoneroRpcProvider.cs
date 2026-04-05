@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
 
@@ -52,6 +53,21 @@ namespace BTCPayServer.Plugins.Monero.Services
                    summary.WalletAvailable;
         }
 
+        public async Task OpenWallet(string cryptoCode, string filename, string password)
+        {
+            if (!WalletRpcClients.TryGetValue(cryptoCode.ToUpperInvariant(), out var walletRpcClient))
+            {
+                throw new InvalidOperationException($"Wallet RPC client not found for {cryptoCode}");
+            }
+
+            await walletRpcClient.SendCommandAsync<OpenWalletRequest, object>(
+                "open_wallet", new OpenWalletRequest
+                {
+                    Filename = filename,
+                    Password = password
+                });
+        }
+
         public async Task CloseWallet(string cryptoCode)
         {
             if (!WalletRpcClients.TryGetValue(cryptoCode.ToUpperInvariant(), out var walletRpcClient))
@@ -63,12 +79,38 @@ namespace BTCPayServer.Plugins.Monero.Services
                 "close_wallet", NoRequestModel.Instance);
         }
 
+        public async Task ChangeWalletPassword(string cryptoCode, string oldPassword, string newPassword)
+        {
+            if (!WalletRpcClients.TryGetValue(cryptoCode.ToUpperInvariant(), out var walletRpcClient))
+            {
+                throw new InvalidOperationException($"Wallet RPC client not found for {cryptoCode}");
+            }
+
+            await walletRpcClient.SendCommandAsync<object, MoneroRpcResponse>(
+                "change_wallet_password", new
+                {
+                    old_password = oldPassword,
+                    new_password = newPassword
+                });
+        }
+
         public string GetWalletDirectory(string cryptoCode)
         {
             cryptoCode = cryptoCode.ToUpperInvariant();
             return !_moneroLikeConfiguration.MoneroLikeConfigurationItems.TryGetValue(cryptoCode, out var configItem)
                 ? null
                 : configItem.WalletDirectory;
+        }
+
+        public bool HasDeprecatedPasswordFile(string cryptoCode)
+        {
+            string walletDir = GetWalletDirectory(cryptoCode);
+            if (string.IsNullOrEmpty(walletDir))
+            {
+                return false;
+            }
+
+            return File.Exists(Path.Combine(walletDir, "password"));
         }
 
         public async Task<MoneroLikeSummary> UpdateSummary(string cryptoCode)
