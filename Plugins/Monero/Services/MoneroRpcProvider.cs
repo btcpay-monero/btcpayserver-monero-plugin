@@ -70,8 +70,8 @@ namespace BTCPayServer.Plugins.Monero.Services
                 throw new InvalidOperationException($"Wallet RPC client not found for {cryptoCode}");
             }
 
-            await walletRpcClient.SendCommandAsync<JsonRpcClient.NoRequestModel, object>(
-                "store", JsonRpcClient.NoRequestModel.Instance);
+            await walletRpcClient.SendCommandAsync<NoRequestModel, object>(
+                "store", NoRequestModel.Instance);
         }
 
         public string GetWalletDirectory(string cryptoCode)
