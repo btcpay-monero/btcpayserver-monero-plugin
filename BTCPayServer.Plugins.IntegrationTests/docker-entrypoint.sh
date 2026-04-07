@@ -2,9 +2,9 @@
 set -e
 
 dotCover cover-dotnet \
-  --TargetArguments="test -c ${CONFIGURATION_NAME} $FILTERS . --no-build -v n" \
+  --TargetArguments="test -c ${CONFIGURATION_NAME} --no-build -v n" \
   --Output=/coverage/dotCover.IntegrationTests.output.dcvr \
-  --filters="-:Assembly=BTCPayServer.Plugins.IntegrationTests;-:Assembly=testhost;-:Assembly=BTCPayServer;-:Assembly=ExchangeSharp;-:Assembly=BTCPayServer.Tests;-:Assembly=BTCPayServer.Client;-:Assembly=BTCPayServer.Abstractions;-:Assembly=BTCPayServer.Data;-:Assembly=BTCPayServer.Common;-:Assembly=BTCPayServer.Logging;-:Assembly=BTCPayServer.Rating;-:Assembly=Dapper;-:Assembly=Serilog.Extensions.Logging;-:Class=AspNetCoreGeneratedDocument.*"
+  --filters="-:Assembly=BTCPayServer.Plugins.IntegrationTests;-:Assembly=Monero;-:Assembly=testhost;-:Assembly=BTCPayServer;-:Assembly=ExchangeSharp;-:Assembly=BTCPayServer.Tests;-:Assembly=BTCPayServer.Client;-:Assembly=BTCPayServer.Abstractions;-:Assembly=BTCPayServer.Data;-:Assembly=BTCPayServer.Common;-:Assembly=BTCPayServer.Logging;-:Assembly=BTCPayServer.Rating;-:Assembly=Dapper;-:Assembly=Serilog.Extensions.Logging;-:Class=AspNetCoreGeneratedDocument.*"
 
 dotCover merge \
   --Source=/coverage/dotCover.IntegrationTests.output.dcvr,/coverage/dotCover.UnitTests.output.dcvr \
