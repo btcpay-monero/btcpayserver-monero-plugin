@@ -40,9 +40,7 @@ jobs:
         dotnet validate package local nuget-packages/BTCPayServer.Plugins.Monero.1.0.0.nupkg
 
     - name: Run unit tests
-      run: |
-        dotnet tool install --global JetBrains.dotCover.CommandLineTools --version 2025.1.8
-        dotCover cover-dotnet --TargetArguments="test BTCPayServer.Plugins.UnitTests -c Release --no-build -v n" --output=coverage/dotCover.UnitTests.output.dcvr --filters="-:Assembly=BTCPayServer.Plugins.UnitTests;-:Assembly=testhost;-:Assembly=BTCPayServer;-:Class=AspNetCoreGeneratedDocument.*"
+      run: dotnet test BTCPayServer.Plugins.UnitTests -c Release --no-build -v n /p:CollectCoverage=true /p:CoverletOutput=../coverage/unit/ /p:CoverletOutputFormat=cobertura /p:Include="[BTCPayServer.Plugins.Monero*]*"
 
     - name: Run integration tests
       run: docker compose -f BTCPayServer.Plugins.IntegrationTests/docker-compose.yml run tests
@@ -55,7 +53,7 @@ jobs:
       uses: actions/upload-artifact@v6
       with:
         name: coverage-report
-        path: coverage/dotcover.xml
+        path: coverage/merged/Cobertura.xml
 
     - name: Upload NuGet package
       uses: actions/upload-artifact@v6
