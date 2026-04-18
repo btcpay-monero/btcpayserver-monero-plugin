@@ -20,6 +20,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Logging;
 
 using Monero.Wallet.Rpc;
 
@@ -35,18 +36,21 @@ namespace BTCPayServer.Plugins.Monero.Controllers
         private readonly StoreRepository _StoreRepository;
         private readonly MoneroRpcProvider _MoneroRpcProvider;
         private readonly PaymentMethodHandlerDictionary _handlers;
+        private readonly ILogger<UIMoneroLikeStoreController> _logger;
         private IStringLocalizer StringLocalizer { get; }
 
         public UIMoneroLikeStoreController(MoneroLikeConfiguration moneroLikeConfiguration,
             StoreRepository storeRepository, MoneroRpcProvider moneroRpcProvider,
             PaymentMethodHandlerDictionary handlers,
-            IStringLocalizer stringLocalizer)
+            IStringLocalizer stringLocalizer,
+            ILogger<UIMoneroLikeStoreController> logger)
         {
             _MoneroLikeConfiguration = moneroLikeConfiguration;
             _StoreRepository = storeRepository;
             _MoneroRpcProvider = moneroRpcProvider;
             _handlers = handlers;
             StringLocalizer = stringLocalizer;
+            _logger = logger;
         }
 
         public StoreData StoreData => HttpContext.GetStoreData();
@@ -68,22 +72,21 @@ namespace BTCPayServer.Plugins.Monero.Controllers
             };
         }
 
-        private Task<GetAccountsResponse> GetAccounts(string cryptoCode)
+        private async Task<GetAccountsResponse> GetAccounts(string cryptoCode)
         {
             try
             {
                 if (_MoneroRpcProvider.Summaries.TryGetValue(cryptoCode, out var summary) && summary.WalletAvailable)
                 {
-
-                    return _MoneroRpcProvider.WalletRpcClients[cryptoCode].SendCommandAsync<GetAccountsRequest, GetAccountsResponse>("get_accounts", new GetAccountsRequest());
+                    return await _MoneroRpcProvider.WalletRpcClients[cryptoCode].SendCommandAsync<GetAccountsRequest, GetAccountsResponse>("get_accounts", new GetAccountsRequest());
                 }
             }
-            catch
+            catch (Exception ex)
             {
-                // ignored
+                _logger.LogError(ex, "Failed to get accounts for {CryptoCode}", cryptoCode);
             }
 
-            return Task.FromResult<GetAccountsResponse>(null);
+            return null;
         }
 
         private MoneroLikePaymentMethodViewModel GetMoneroLikePaymentMethodViewModel(
