@@ -105,8 +105,6 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroAndBi
         // Select confirmation time to 0
         await s.Page.SelectOptionAsync("#SettlementConfirmationThresholdChoice", "3");
         await s.Page.ClickAsync("#SaveButton");
-
-        await IntegrationTestUtils.CleanUpAsync(s);
     }
 
     [Fact]
@@ -129,8 +127,6 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroAndBi
             .InnerTextAsync();
 
         Assert.Equal("Could not generate view wallet from keys: Failed to parse public address", errorText);
-
-        await IntegrationTestUtils.CleanUpAsync(s);
     }
 
     [Fact]
@@ -163,13 +159,13 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroAndBi
             .InnerTextAsync();
 
         Assert.Equal("Could not generate view wallet from keys: Wallet already exists.", errorText);
-        await IntegrationTestUtils.CleanUpAsync(s);
     }
 
     [Fact]
     public async Task ShouldLoadViewWalletOnStartUpIfExists()
     {
         await IntegrationTestUtils.CreateTestXmrWalletFilesViaRpc("");
+        await IntegrationTestUtils.CloseTestXmrWalletFilesViaRpc();
         await using var s = CreatePlaywrightTester();
         await s.StartAsync();
         await s.RegisterNewUser(true);
@@ -181,14 +177,13 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroAndBi
             .InnerTextAsync();
 
         Assert.Contains("Wallet RPC available: True", walletRpcIsAvailable);
-
-        await IntegrationTestUtils.CleanUpAsync(s);
     }
 
     [Fact]
     public async Task ShouldLoadViewWalletWithPasswordOnStartUpIfExists()
     {
         await IntegrationTestUtils.CreateTestXmrWalletWithPasswordAsync("pass123", "wallet_password");
+        await IntegrationTestUtils.CloseTestXmrWalletFilesViaRpc();
         await using var s = CreatePlaywrightTester();
         await s.StartAsync();
         await s.RegisterNewUser(true);
@@ -200,7 +195,5 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroAndBi
             .InnerTextAsync();
 
         Assert.Contains("Wallet RPC available: True", walletRpcIsAvailable);
-
-        await IntegrationTestUtils.CleanUpAsync(s);
     }
 }

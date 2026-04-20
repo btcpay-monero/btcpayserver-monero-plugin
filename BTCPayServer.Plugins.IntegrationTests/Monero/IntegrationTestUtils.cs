@@ -2,9 +2,6 @@ using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
 
-using BTCPayServer.Plugins.Monero.Services;
-using BTCPayServer.Tests;
-
 using Microsoft.Extensions.Logging;
 
 using Mono.Unix.Native;
@@ -27,14 +24,19 @@ public static class IntegrationTestUtils
     private static readonly string ContainerWalletDir =
         Environment.GetEnvironmentVariable("BTCPAY_XMR_WALLET_DAEMON_WALLETDIR") ?? "/wallet";
 
-    public static async Task CleanUpAsync(PlaywrightTester playwrightTester)
+    private static readonly HttpClient MoneroRpcClient = new()
     {
-        MoneroRpcProvider moneroRpcProvider = playwrightTester.Server.PayTester.GetService<MoneroRpcProvider>();
-        if (moneroRpcProvider.IsAvailable("XMR"))
+        BaseAddress = new UriBuilder
         {
-            await moneroRpcProvider.CloseWallet("XMR");
-        }
+            Scheme = "http",
+            Host = RunsInContainer ? "xmr_wallet" : "localhost",
+            Port = 18082
+        }.Uri
+    };
 
+    public static async Task CleanUpAsync()
+    {
+        await CloseTestXmrWalletFilesViaRpc();
         if (RunsInContainer)
         {
             DeleteWalletInContainer();
@@ -231,13 +233,7 @@ public static class IntegrationTestUtils
 
     public static async Task CreateTestXmrWalletFilesViaRpc(string password)
     {
-        var host = RunsInContainer ? "xmr_wallet" : "localhost";
-
-        Logger.LogInformation("Creating wallet files via RPC on {Host}", host);
-
-        using var httpClient = new HttpClient();
-        var uri = new UriBuilder { Scheme = "http", Host = host, Port = 18082 }.Uri;
-        httpClient.BaseAddress = uri;
+        Logger.LogInformation("Creating wallet files via RPC on {Host}", MoneroRpcClient.BaseAddress!.Host);
 
         var requestPayload = new
         {
@@ -258,8 +254,23 @@ public static class IntegrationTestUtils
         var json = JsonSerializer.Serialize(requestPayload);
         using var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-        var response = await httpClient.PostAsync("/json_rpc", content);
+        var response = await MoneroRpcClient.PostAsync("/json_rpc", content);
         response.EnsureSuccessStatusCode();
+    }
+
+    public static async Task CloseTestXmrWalletFilesViaRpc()
+    {
+        var requestPayload = new
+        {
+            id = "0",
+            jsonrpc = "2.0",
+            method = "close_wallet"
+        };
+
+        var json = JsonSerializer.Serialize(requestPayload);
+        using var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+        await MoneroRpcClient.PostAsync("/json_rpc", content);
     }
 
     public static async Task CreateTestXmrWalletWithPasswordAsync(string walletPassword, string viewWalletPasswordFile)
