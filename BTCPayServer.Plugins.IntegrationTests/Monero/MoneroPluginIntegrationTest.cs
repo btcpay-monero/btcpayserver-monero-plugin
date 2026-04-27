@@ -1,9 +1,6 @@
-using BTCPayServer.Plugins.Monero.Services;
 using BTCPayServer.Rating;
 using BTCPayServer.Services.Rates;
 using BTCPayServer.Tests.Mocks;
-
-using Monero.Wallet.Rpc;
 
 using Xunit;
 using Xunit.Abstractions;
@@ -39,15 +36,16 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroInteg
         await s.RegisterNewUser(true);
         await s.CreateNewStore(preferredExchange: "Kraken");
         await s.Page.Locator("a.nav-link[href*='monerolike/XMR']").ClickAsync();
+        await s.Page.Locator("#ConnectWalletLink").ClickAsync();
         await s.Page.Locator("input#PrimaryAddress")
             .FillAsync(
                 "43Pnj6ZKGFTJhaLhiecSFfLfr64KPJZw7MyGH73T6PTDekBBvsTAaWEUSM4bmJqDuYLizhA13jQkMRPpz9VXBCBqQQb6y5L");
         await s.Page.Locator("input#PrivateViewKey")
             .FillAsync("1bfa03b0c78aa6bc8292cf160ec9875657d61e889c41d0ebe5c54fd3a2c4b40e");
         await s.Page.Locator("input#RestoreHeight").FillAsync("0");
-        await s.Page.ClickAsync("button[name='command'][value='set-wallet-details']");
+        await s.Page.ClickAsync("#ConnectWalletButton");
         var message = await s.Page
-            .GetByText("View-only wallet created. The wallet will soon become available.")
+            .GetByText("View-only wallet created and now active")
             .InnerTextAsync();
         Assert.Contains("View-only wallet created", message);
         await Task.Delay(TimeSpan.FromSeconds(5)); // wallet-rpc needs some time to create wallet files. refactor this later
@@ -88,17 +86,9 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroInteg
         await s.Page.GoBackAsync();
         await s.Page.Locator("a.nav-link[href*='monerolike/XMR']").ClickAsync();
 
-        // Create a new account label
         await s.Page.FillAsync("#NewAccountLabel", "tst-account");
-        await s.Page.ClickAsync("button[name='command'][value='add-account']");
+        await s.Page.ClickAsync("#AddAccountButton");
 
-        // Select primary Account Index
-        await s.Page.Locator("a.nav-link[href*='monerolike/XMR']").ClickAsync();
-        await s.Page.SelectOptionAsync("#AccountIndex", "1");
-        await s.Page.ClickAsync("#SaveButton");
-
-        // Verify selected account index
-        await s.Page.Locator("a.nav-link[href*='monerolike/XMR']").ClickAsync();
         var selectedValue = await s.Page.Locator("#AccountIndex").InputValueAsync();
         Assert.Equal("1", selectedValue);
 
@@ -116,49 +106,18 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroInteg
         await s.RegisterNewUser(true);
         await s.CreateNewStore();
         await s.Page.Locator("a.nav-link[href*='monerolike/XMR']").ClickAsync();
+        await s.Page.Locator("#ConnectWalletLink").ClickAsync();
         await s.Page.Locator("input#PrimaryAddress")
             .FillAsync("wrongprimaryaddressfSF6ZKGFT7MyGH73T6PTDekBBvsTAaWEUSM4bmJqDuYLizhA13jQkMRPpz9VXBCBqQQb6y5L");
         await s.Page.Locator("input#PrivateViewKey")
             .FillAsync("1bfa03b0c78aa6bc8292cf160ec9875657d61e889c41d0ebe5c54fd3a2c4b40e");
         await s.Page.Locator("input#RestoreHeight").FillAsync("0");
-        await s.Page.ClickAsync("button[name='command'][value='set-wallet-details']");
+        await s.Page.ClickAsync("#ConnectWalletButton");
         var errorText = await s.Page
             .Locator("div.validation-summary-errors li")
             .InnerTextAsync();
 
         Assert.Equal("Could not generate view wallet from keys: Failed to parse public address", errorText);
-    }
-
-    [Fact]
-    public async Task ShouldFailWhenWalletFileAlreadyExists()
-    {
-        await using var s = CreatePlaywrightTester();
-        await s.StartAsync();
-
-        MoneroRpcProvider moneroRpcProvider = s.Server.PayTester.GetService<MoneroRpcProvider>();
-        await moneroRpcProvider.WalletRpcClients["XMR"].SendCommandAsync<GenerateFromKeysRequest, GenerateFromKeysResponse>("generate_from_keys", new GenerateFromKeysRequest
-        {
-            PrimaryAddress = "43Pnj6ZKGFTJhaLhiecSFfLfr64KPJZw7MyGH73T6PTDekBBvsTAaWEUSM4bmJqDuYLizhA13jQkMRPpz9VXBCBqQQb6y5L",
-            PrivateViewKey = "1bfa03b0c78aa6bc8292cf160ec9875657d61e889c41d0ebe5c54fd3a2c4b40e",
-            WalletFileName = "wallet",
-            Password = ""
-        });
-        await moneroRpcProvider.CloseWallet("XMR");
-
-        await s.RegisterNewUser(true);
-        await s.CreateNewStore();
-        await s.Page.Locator("a.nav-link[href*='monerolike/XMR']").ClickAsync();
-        await s.Page.Locator("input#PrimaryAddress")
-            .FillAsync("43Pnj6ZKGFTJhaLhiecSFfLfr64KPJZw7MyGH73T6PTDekBBvsTAaWEUSM4bmJqDuYLizhA13jQkMRPpz9VXBCBqQQb6y5L");
-        await s.Page.Locator("input#PrivateViewKey")
-            .FillAsync("1bfa03b0c78aa6bc8292cf160ec9875657d61e889c41d0ebe5c54fd3a2c4b40e");
-        await s.Page.Locator("input#RestoreHeight").FillAsync("0");
-        await s.Page.ClickAsync("button[name='command'][value='set-wallet-details']");
-        var errorText = await s.Page
-            .Locator("div.validation-summary-errors li")
-            .InnerTextAsync();
-
-        Assert.Equal("Could not generate view wallet from keys: Wallet already exists.", errorText);
     }
 
     [Fact]

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
+using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
 
@@ -69,6 +70,17 @@ namespace BTCPayServer.Plugins.Monero.Services
             return !_moneroLikeConfiguration.MoneroLikeConfigurationItems.TryGetValue(cryptoCode, out var configItem)
                 ? null
                 : configItem.WalletDirectory;
+        }
+
+        public bool WalletFileExists(string cryptoCode)
+        {
+            var walletDir = GetWalletDirectory(cryptoCode);
+            if (walletDir is null)
+            {
+                return false;
+            }
+
+            return File.Exists(Path.Combine(walletDir, "wallet.keys"));
         }
 
         public async Task<MoneroLikeSummary> UpdateSummary(string cryptoCode)
