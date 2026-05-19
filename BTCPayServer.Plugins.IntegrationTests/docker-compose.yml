@@ -34,7 +34,7 @@ services:
     image: btcpayserver/monero:0.18.4.3
     restart: unless-stopped
     container_name: monerod
-    command: monerod --fixed-difficulty 1 --log-level=2 --rpc-bind-ip=0.0.0.0 --confirm-external-bind --rpc-bind-port=18081 --block-notify="/bin/sh ./scripts/notifier.sh -k -X GET https://host.docker.internal:14142/monerolikedaemoncallback/block?cryptoCode=xmr&hash=%s" --regtest --no-igd --hide-my-port --offline --non-interactive
+    command: monerod --fixed-difficulty 1 --log-level=2 --rpc-bind-ip=0.0.0.0 --confirm-external-bind --rpc-bind-port=18081 --block-notify="/bin/sh ./scripts/notifier.sh -k -X GET http://host.docker.internal:14142/monerolikedaemoncallback/block?cryptoCode=xmr&hash=%s" --regtest --no-igd --hide-my-port --offline --non-interactive
     volumes:
       - xmr_data:/data
     ports:
@@ -44,7 +44,7 @@ services:
     image: btcpayserver/monero:0.18.4.3
     restart: unless-stopped
     container_name: xmr_wallet
-    command: monero-wallet-rpc --log-level 2 --allow-mismatched-daemon-version --rpc-bind-ip=0.0.0.0 --disable-rpc-login --confirm-external-bind --rpc-bind-port=18082 --non-interactive --trusted-daemon --daemon-address=monerod:18081 --wallet-dir=/wallet --tx-notify="/bin/sh ./scripts/notifier.sh -k -X GET https://host.docker.internal:14142/monerolikedaemoncallback/tx?cryptoCode=xmr&hash=%s"
+    command: monero-wallet-rpc --log-level 2 --allow-mismatched-daemon-version --rpc-bind-ip=0.0.0.0 --disable-rpc-login --confirm-external-bind --rpc-bind-port=18082 --non-interactive --trusted-daemon --daemon-address=monerod:18081 --wallet-dir=/wallet --tx-notify="/bin/sh ./scripts/notifier.sh -k -X GET http://host.docker.internal:14142/monerolikedaemoncallback/tx?cryptoCode=xmr&hash=%s"
     ports:
       - "18082:18082"
     volumes:
@@ -55,6 +55,7 @@ services:
   postgres:
     image: postgres:17.4
     container_name: postgres
+    restart: unless-stopped
     environment:
       POSTGRES_HOST_AUTH_METHOD: trust
     ports:

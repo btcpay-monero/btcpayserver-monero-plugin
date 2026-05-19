@@ -24,13 +24,16 @@ public static class IntegrationTestUtils
     private static readonly string ContainerWalletDir =
         Environment.GetEnvironmentVariable("BTCPAY_XMR_WALLET_DAEMON_WALLETDIR") ?? "/wallet";
 
+    private static readonly Uri WalletDaemonUri = new(
+        Environment.GetEnvironmentVariable("BTCPAY_XMR_WALLET_DAEMON_URI") ?? "http://localhost:18082");
+
     private static readonly HttpClient MoneroRpcClient = new()
     {
         BaseAddress = new UriBuilder
         {
-            Scheme = "http",
-            Host = RunsInContainer ? "xmr_wallet" : "localhost",
-            Port = 18082
+            Scheme = WalletDaemonUri.Scheme,
+            Host = WalletDaemonUri.Host,
+            Port = WalletDaemonUri.Port
         }.Uri
     };
 

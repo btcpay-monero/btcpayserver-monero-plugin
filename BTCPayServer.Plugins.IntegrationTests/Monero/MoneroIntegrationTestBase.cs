@@ -1,7 +1,6 @@
 using BTCPayServer.Tests;
 
 using Xunit;
-using Xunit.Abstractions;
 
 namespace BTCPayServer.Plugins.IntegrationTests.Monero;
 
@@ -15,9 +14,9 @@ public class MoneroIntegrationTestBase : UnitTestBase, IAsyncLifetime
         SetDefaultEnv("BTCPAY_NODEFAULTCHAIN", "true");
     }
 
-    public Task InitializeAsync() => Task.CompletedTask;
+    public ValueTask InitializeAsync() => ValueTask.CompletedTask;
 
-    public Task DisposeAsync() => IntegrationTestUtils.CleanUpAsync();
+    public ValueTask DisposeAsync() => new(IntegrationTestUtils.CleanUpAsync());
 
     private static void SetDefaultEnv(string key, string defaultValue)
     {

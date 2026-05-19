@@ -78,6 +78,52 @@ dotnet build btcpay-monero-plugin.sln
 docker compose -f BTCPayServer.Plugins.IntegrationTests/docker-compose.yml run tests
 ```
 
+## Devcontainer
+
+Monero Plugin provides a devcontainer that deploys the full development environment in one step.
+
+### Requirements
+
+- **VS Code** or **Rider IDE**
+- **Docker**
+
+### Opening the devcontainer
+
+- **VS Code**: `Ctrl+Shift+P` - "Dev Containers: Open folder in Container"
+    - [Quickstart: Open an existing folder in a container](https://code.visualstudio.com/docs/devcontainers/containers#_quick-start-open-an-existing-folder-in-a-container)
+- **Rider**: Open Rider - "Open Dev Container" - select the `devcontainer.json` file in the `.devcontainer` directory.
+    - [Start Dev Container from the IDE welcome screen](https://www.jetbrains.com/help/rider/Start-Dev-Container-from-welcome-screen.html)
+    - [Start Dev Container inside IDE](https://www.jetbrains.com/help/rider/Start-Dev-Container-inside-IDE.html)
+
+### Running the app
+
+1. Select the run configuration for your IDE:
+   - **VS Code**: Open Run and Debug → select **"Monero (Devcontainer)"** - F5
+   - **Rider**: Select the **"Monero-Devcontainer"** run configuration - Run or Debug
+2. The IDE builds BTCPayServer, then opens a browser at http://127.0.0.1:14142
+
+### Running integration tests
+
+From the devcontainer:
+
+```bash
+dotnet test BTCPayServer.Plugins.IntegrationTests --verbosity normal
+```
+
+To **watch integration tests live**, open http://127.0.0.1:6080 from the host browser.
+
+### Resetting the environment
+
+To reset the environment, run:
+
+```bash
+docker compose -f .devcontainer/docker-compose.yml down -v
+```
+
+Then rebuild the devcontainer.
+
+---
+
 ## Code formatting
 
 We use the **unmodified** standardized `.editorconfig` from .NET SDK. Run `dotnet new editorconfig --force` to apply the latest version.
@@ -94,7 +140,7 @@ Then create the `appsettings.dev.json` file in `btcpayserver/BTCPayServer`, with
 
 ```json
 {
-  "DEBUG_PLUGINS": "..\\..\\Plugins\\Monero\\bin\\Debug\\net10.0\\BTCPayServer.Plugins.Monero.dll",
+  "DEBUG_PLUGINS": "..\\..\\..\\Plugins\\Monero\\bin\\Release\\net10.0\\BTCPayServer.Plugins.Monero.dll",
   "XMR_DAEMON_URI": "http://127.0.0.1:18081",
   "XMR_WALLET_DAEMON_URI": "http://127.0.0.1:18082"
 }

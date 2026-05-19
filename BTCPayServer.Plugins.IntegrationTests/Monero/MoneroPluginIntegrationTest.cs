@@ -6,7 +6,6 @@ using BTCPayServer.Tests.Mocks;
 using Monero.Wallet.Rpc;
 
 using Xunit;
-using Xunit.Abstractions;
 
 namespace BTCPayServer.Plugins.IntegrationTests.Monero;
 
@@ -50,7 +49,7 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroInteg
             .GetByText("View-only wallet created. The wallet will soon become available.")
             .InnerTextAsync();
         Assert.Contains("View-only wallet created", message);
-        await Task.Delay(TimeSpan.FromSeconds(5)); // wallet-rpc needs some time to create wallet files. refactor this later
+        await Task.Delay(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken); // wallet-rpc needs some time to create wallet files. refactor this later
 
         // Set rate provider
         await s.Page.Locator("#menu-item-General").ClickAsync();
@@ -70,7 +69,7 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroInteg
         await s.Page.Locator("#page-primary").ClickAsync();
         await s.Page.FillAsync("#Amount", "4.20");
         await s.Page.FillAsync("#BuyerEmail", "monero@monero.com");
-        await Task.Delay(TimeSpan.FromSeconds(20)); // wallet-rpc needs some time to sync. refactor this later
+        await Task.Delay(TimeSpan.FromSeconds(20), TestContext.Current.CancellationToken); // wallet-rpc needs some time to sync. refactor this later
         await s.Page.Locator("#page-primary").ClickAsync();
 
         // View the invoice
@@ -142,7 +141,7 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroInteg
             PrivateViewKey = "1bfa03b0c78aa6bc8292cf160ec9875657d61e889c41d0ebe5c54fd3a2c4b40e",
             WalletFileName = "wallet",
             Password = ""
-        });
+        }, TestContext.Current.CancellationToken);
         await moneroRpcProvider.CloseWallet("XMR");
 
         await s.RegisterNewUser(true);

@@ -1,0 +1,55 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Monero (Local)",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/submodules/btcpayserver/BTCPayServer/bin/Debug/net10.0/BTCPayServer.dll",
+            "cwd": "${workspaceFolder}/submodules/btcpayserver/BTCPayServer",
+            "launchSettingsProfile": "",
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "Development",
+                "BTCPAY_NETWORK": "regtest",
+                "BTCPAY_NODEFAULTCHAIN": "true",
+                "BTCPAY_PORT": "14142",
+                "BTCPAY_POSTGRES": "User ID=postgres;Include Error Detail=true;Host=127.0.0.1;Port=39372;Database=btcpayserver",
+                "BTCPAY_CHEATMODE": "true",
+                "BTCPAY_XMR_DAEMON_URI": "http://127.0.0.1:18081",
+                "BTCPAY_XMR_WALLET_DAEMON_URI": "http://127.0.0.1:18082",
+                "BTCPAY_XMR_WALLET_DAEMON_WALLETDIR": "/wallet"
+            },
+            "serverReadyAction": {
+                "action": "openExternally",
+                "pattern": "Now listening on.*:(\\d+)",
+                "uriFormat": "http://localhost:%s"
+            }
+        },
+        {
+            "name": "Monero (Devcontainer)",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/submodules/btcpayserver/BTCPayServer/bin/Debug/net10.0/BTCPayServer.dll",
+            "cwd": "${workspaceFolder}/submodules/btcpayserver/BTCPayServer",
+            "launchSettingsProfile": "",
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "Development",
+                "BTCPAY_NETWORK": "regtest",
+                "BTCPAY_NODEFAULTCHAIN": "true",
+                "BTCPAY_PORT": "14142",
+                "BTCPAY_POSTGRES": "User ID=postgres;Include Error Detail=true;Host=postgres;Port=5432;Database=btcpayserver",
+                "BTCPAY_CHEATMODE": "true",
+                "BTCPAY_XMR_DAEMON_URI": "http://monerod:18081",
+                "BTCPAY_XMR_WALLET_DAEMON_URI": "http://xmr_wallet:18082",
+                "BTCPAY_XMR_WALLET_DAEMON_WALLETDIR": "/wallet"
+            },
+            "serverReadyAction": {
+                "action": "openExternally",
+                "pattern": "Now listening on.*:(\\d+)",
+                "uriFormat": "http://localhost:%s"
+            }
+        }
+    ]
+}
