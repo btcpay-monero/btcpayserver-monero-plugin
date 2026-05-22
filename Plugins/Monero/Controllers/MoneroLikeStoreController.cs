@@ -99,8 +99,6 @@ namespace BTCPayServer.Plugins.Monero.Controllers
             var pmi = PaymentTypes.CHAIN.GetPaymentMethodId(cryptoCode);
             var settings = monero.Where(method => method.PaymentMethodId == pmi).Select(m => m.Details).SingleOrDefault();
             _MoneroRpcProvider.Summaries.TryGetValue(cryptoCode, out var summary);
-            _MoneroLikeConfiguration.MoneroLikeConfigurationItems.TryGetValue(cryptoCode,
-                out var configurationItem);
             var accounts = accountsResponse?.Accounts.Select(account =>
                 new SelectListItem(
                     $"{account.AccountIndex} - {(string.IsNullOrEmpty(account.Label) ? "No label" : account.Label)}",
@@ -146,93 +144,24 @@ namespace BTCPayServer.Plugins.Monero.Controllers
                 return NotFound();
             }
 
+            if (!_MoneroRpcProvider.WalletFileExists(cryptoCode))
+            {
+                return RedirectToAction(nameof(WalletSetup), new { storeId = StoreData.Id, cryptoCode });
+            }
+
             var vm = GetMoneroLikePaymentMethodViewModel(StoreData, cryptoCode,
                 StoreData.GetStoreBlob().GetExcludedPaymentMethods(), await GetAccounts(cryptoCode));
             return View("/Views/Monero/GetStoreMoneroLikePaymentMethod.cshtml", vm);
         }
 
         [HttpPost("{cryptoCode}")]
-        public async Task<IActionResult> GetStoreMoneroLikePaymentMethod(MoneroLikePaymentMethodViewModel viewModel, string command, string cryptoCode)
+        public async Task<IActionResult> GetStoreMoneroLikePaymentMethod(MoneroLikePaymentMethodViewModel viewModel, string cryptoCode)
         {
             cryptoCode = cryptoCode.ToUpperInvariant();
             if (!_MoneroLikeConfiguration.MoneroLikeConfigurationItems.TryGetValue(cryptoCode,
-                out var configurationItem))
+                    out var configurationItem))
             {
                 return NotFound();
-            }
-
-            if (command == "add-account")
-            {
-                try
-                {
-                    var newAccount = await _MoneroRpcProvider.WalletRpcClients[cryptoCode].SendCommandAsync<CreateAccountRequest, CreateAccountResponse>("create_account", new CreateAccountRequest()
-                    {
-                        Label = viewModel.NewAccountLabel
-                    });
-                    viewModel.AccountIndex = newAccount.AccountIndex;
-                }
-                catch (Exception)
-                {
-                    ModelState.AddModelError(nameof(viewModel.AccountIndex), StringLocalizer["Could not create a new account."]);
-                }
-
-            }
-            else if (command == "set-wallet-details")
-            {
-                var valid = true;
-                if (viewModel.PrimaryAddress == null)
-                {
-                    ModelState.AddModelError(nameof(viewModel.PrimaryAddress), StringLocalizer["Please set your primary public address"]);
-                    valid = false;
-                }
-                if (viewModel.PrivateViewKey == null)
-                {
-                    ModelState.AddModelError(nameof(viewModel.PrivateViewKey), StringLocalizer["Please set your private view key"]);
-                    valid = false;
-                }
-                if (configurationItem.WalletDirectory == null)
-                {
-                    ModelState.AddModelError(nameof(viewModel.PrimaryAddress), StringLocalizer["This installation doesn't support wallet creation (BTCPAY_XMR_WALLET_DAEMON_WALLETDIR is not set)"]);
-                    valid = false;
-                }
-                if (valid)
-                {
-                    if (_MoneroRpcProvider.Summaries.TryGetValue(cryptoCode, out var summary))
-                    {
-                        if (summary.WalletAvailable)
-                        {
-                            TempData.SetStatusMessageModel(new StatusMessageModel
-                            {
-                                Severity = StatusMessageModel.StatusSeverity.Error,
-                                Message = StringLocalizer["There is already an active wallet configured for {0}. Replacing it would break any existing invoices!", cryptoCode].Value
-                            });
-                            return RedirectToAction(nameof(GetStoreMoneroLikePaymentMethod),
-                                new { cryptoCode });
-                        }
-                    }
-                    try
-                    {
-                        await _MoneroRpcProvider.WalletRpcClients[cryptoCode].SendCommandAsync<GenerateFromKeysRequest, GenerateFromKeysResponse>("generate_from_keys", new GenerateFromKeysRequest
-                        {
-                            PrimaryAddress = viewModel.PrimaryAddress,
-                            PrivateViewKey = viewModel.PrivateViewKey,
-                            WalletFileName = "wallet",
-                            RestoreHeight = viewModel.RestoreHeight
-                        });
-                    }
-                    catch (Exception ex)
-                    {
-                        ModelState.AddModelError(nameof(viewModel.AccountIndex), StringLocalizer["Could not generate view wallet from keys: {0}", ex.Message]);
-                        return View("/Views/Monero/GetStoreMoneroLikePaymentMethod.cshtml", viewModel);
-                    }
-
-                    TempData.SetStatusMessageModel(new StatusMessageModel
-                    {
-                        Severity = StatusMessageModel.StatusSeverity.Info,
-                        Message = StringLocalizer["View-only wallet created. The wallet will soon become available."].Value
-                    });
-                    return RedirectToAction(nameof(GetStoreMoneroLikePaymentMethod), new { cryptoCode });
-                }
             }
 
             if (!ModelState.IsValid)
@@ -267,7 +196,142 @@ namespace BTCPayServer.Plugins.Monero.Controllers
             blob.SetExcluded(PaymentTypes.CHAIN.GetPaymentMethodId(viewModel.CryptoCode), !viewModel.Enabled);
             storeData.SetStoreBlob(blob);
             await _StoreRepository.UpdateStore(storeData);
-            return RedirectToAction("GetStoreMoneroLikePaymentMethod", new { cryptoCode });
+            return RedirectToAction(nameof(GetStoreMoneroLikePaymentMethod), new { storeId = StoreData.Id, cryptoCode });
+        }
+
+        [HttpPost("accounts/{cryptoCode}")]
+        public async Task<IActionResult> AddAccount(string cryptoCode, MoneroLikePaymentMethodViewModel viewModel)
+        {
+            cryptoCode = cryptoCode.ToUpperInvariant();
+            if (!_MoneroLikeConfiguration.MoneroLikeConfigurationItems.ContainsKey(cryptoCode))
+            {
+                return NotFound();
+            }
+
+            CreateAccountResponse newAccount;
+            try
+            {
+                newAccount = await _MoneroRpcProvider.WalletRpcClients[cryptoCode].SendCommandAsync<CreateAccountRequest, CreateAccountResponse>("create_account", new CreateAccountRequest
+                {
+                    Label = viewModel.NewAccountLabel
+                });
+            }
+            catch (Exception ex)
+            {
+                TempData.SetStatusMessageModel(new StatusMessageModel
+                {
+                    Severity = StatusMessageModel.StatusSeverity.Error,
+                    Message = StringLocalizer["Could not create a new account: {0}", ex.Message].Value
+                });
+                return RedirectToAction(nameof(GetStoreMoneroLikePaymentMethod), new { storeId = StoreData.Id, cryptoCode });
+            }
+
+            var storeData = StoreData;
+            var pmi = PaymentTypes.CHAIN.GetPaymentMethodId(cryptoCode);
+            var existing = storeData.GetPaymentMethodConfig<MoneroPaymentPromptDetails>(pmi, _handlers);
+            storeData.SetPaymentMethodConfig(_handlers[pmi], new MoneroPaymentPromptDetails
+            {
+                AccountIndex = newAccount.AccountIndex,
+                InvoiceSettledConfirmationThreshold = existing?.InvoiceSettledConfirmationThreshold
+            });
+            await _StoreRepository.UpdateStore(storeData);
+            return RedirectToAction(nameof(GetStoreMoneroLikePaymentMethod), new { storeId = StoreData.Id, cryptoCode });
+        }
+
+        [HttpGet("connect/{cryptoCode}")]
+        public IActionResult ImportViewOnlyWallet(string cryptoCode)
+        {
+            cryptoCode = cryptoCode.ToUpperInvariant();
+            if (!_MoneroLikeConfiguration.MoneroLikeConfigurationItems.ContainsKey(cryptoCode))
+            {
+                return NotFound();
+            }
+
+            if (_MoneroRpcProvider.WalletFileExists(cryptoCode))
+            {
+                return RedirectToAction(nameof(GetStoreMoneroLikePaymentMethod), new { storeId = StoreData.Id, cryptoCode });
+            }
+
+            return View("/Views/Monero/ImportViewOnlyWallet.cshtml", new MoneroLikePaymentMethodViewModel { CryptoCode = cryptoCode });
+        }
+
+        [HttpPost("connect/{cryptoCode}")]
+        public async Task<IActionResult> ImportViewOnlyWallet(MoneroLikePaymentMethodViewModel viewModel, string cryptoCode)
+        {
+            cryptoCode = cryptoCode.ToUpperInvariant();
+
+            if (string.IsNullOrEmpty(viewModel.PrimaryAddress))
+            {
+                ModelState.AddModelError(nameof(viewModel.PrimaryAddress), StringLocalizer["The primary address is required to create a new wallet."]);
+            }
+
+            if (string.IsNullOrEmpty(viewModel.PrivateViewKey))
+            {
+                ModelState.AddModelError(nameof(viewModel.PrivateViewKey), StringLocalizer["The private view key is required to create a new wallet."]);
+            }
+
+            if (!ModelState.IsValid)
+            {
+                viewModel.CryptoCode = cryptoCode;
+                return View("/Views/Monero/ImportViewOnlyWallet.cshtml", viewModel);
+            }
+
+            if (_MoneroRpcProvider.Summaries.TryGetValue(cryptoCode, out var summary))
+            {
+                if (summary.WalletAvailable)
+                {
+                    TempData.SetStatusMessageModel(new StatusMessageModel
+                    {
+                        Severity = StatusMessageModel.StatusSeverity.Error,
+                        Message = StringLocalizer["There is already an active wallet configured for {0}. Replacing it would break any existing invoices!", cryptoCode].Value
+                    });
+                    return RedirectToAction(nameof(GetStoreMoneroLikePaymentMethod),
+                        new { storeId = StoreData.Id, cryptoCode });
+                }
+            }
+            try
+            {
+                await _MoneroRpcProvider.WalletRpcClients[cryptoCode].SendCommandAsync<GenerateFromKeysRequest, GenerateFromKeysResponse>("generate_from_keys", new GenerateFromKeysRequest
+                {
+                    PrimaryAddress = viewModel.PrimaryAddress,
+                    PrivateViewKey = viewModel.PrivateViewKey,
+                    WalletFileName = "wallet",
+                    RestoreHeight = viewModel.RestoreHeight,
+                    Password = ""
+                });
+            }
+            catch (Exception ex)
+            {
+                ModelState.AddModelError(string.Empty, StringLocalizer["Could not generate view wallet from keys: {0}", ex.Message]);
+                viewModel.CryptoCode = cryptoCode;
+                return View("/Views/Monero/ImportViewOnlyWallet.cshtml", viewModel);
+            }
+
+            await _MoneroRpcProvider.UpdateSummary(cryptoCode);
+
+            TempData.SetStatusMessageModel(new StatusMessageModel
+            {
+                Severity = StatusMessageModel.StatusSeverity.Success,
+                Message = StringLocalizer["View-only wallet created and now active"].Value
+            });
+            return RedirectToAction(nameof(GetStoreMoneroLikePaymentMethod), new { storeId = StoreData.Id, cryptoCode });
+        }
+
+        [HttpGet("setup/{cryptoCode}")]
+        public IActionResult WalletSetup(string cryptoCode)
+        {
+            cryptoCode = cryptoCode.ToUpperInvariant();
+            if (!_MoneroLikeConfiguration.MoneroLikeConfigurationItems.ContainsKey(cryptoCode))
+            {
+                return NotFound();
+            }
+
+            if (_MoneroRpcProvider.WalletFileExists(cryptoCode))
+            {
+                return RedirectToAction(nameof(GetStoreMoneroLikePaymentMethod), new { storeId = StoreData.Id, cryptoCode });
+            }
+
+            return View("/Views/Monero/WalletSetup.cshtml", new MoneroLikePaymentMethodViewModel { CryptoCode = cryptoCode });
         }
 
         public class MoneroLikePaymentMethodListViewModel
@@ -284,7 +348,6 @@ namespace BTCPayServer.Plugins.Monero.Controllers
             public bool Enabled { get; set; }
 
             public IEnumerable<SelectListItem> Accounts { get; set; }
-            public bool WalletFileFound { get; set; }
             [Display(Name = "Primary Public Address")]
             public string PrimaryAddress { get; set; }
             [Display(Name = "Private View Key")]
