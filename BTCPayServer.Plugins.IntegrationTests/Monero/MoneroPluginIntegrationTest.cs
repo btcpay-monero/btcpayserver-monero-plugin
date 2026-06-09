@@ -9,6 +9,7 @@ using Xunit;
 
 namespace BTCPayServer.Plugins.IntegrationTests.Monero;
 
+[Collection("Mining")]
 public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroIntegrationTestBase(helper)
 {
     [Fact]

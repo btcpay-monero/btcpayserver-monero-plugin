@@ -1,5 +1,9 @@
 using BTCPayServer.Tests;
 
+using Monero.Common;
+using Monero.Daemon;
+using Monero.Wallet;
+
 using Xunit;
 
 namespace BTCPayServer.Plugins.IntegrationTests.Monero;
@@ -17,6 +21,16 @@ public class MoneroIntegrationTestBase : UnitTestBase, IAsyncLifetime
     public ValueTask InitializeAsync() => ValueTask.CompletedTask;
 
     public ValueTask DisposeAsync() => IntegrationTestUtils.CleanUpAsync();
+
+    public static MoneroDaemonRpc GetDaemonRpc()
+    {
+        return new MoneroDaemonRpc(new MoneroRpcConnection(new Uri(Environment.GetEnvironmentVariable("BTCPAY_XMR_DAEMON_URI") ?? "http://node_1:18081"), "", ""));
+    }
+
+    public static MoneroWalletRpc GetCashCowWalletRpc()
+    {
+        return new MoneroWalletRpc(new MoneroRpcConnection(new Uri(Environment.GetEnvironmentVariable("BTCPAY_XMR_CASHCOW_WALLET_DAEMON_URI") ?? "http://xmr_cashcow_wallet:18092"), "", ""));
+    }
 
     private static void SetDefaultEnv(string key, string defaultValue)
     {
