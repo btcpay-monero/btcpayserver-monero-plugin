@@ -17,16 +17,14 @@ public class MiningFixture : IAsyncLifetime
     public async ValueTask InitializeAsync()
     {
         MoneroWalletConfig config = new();
-        config.SetPrimaryAddress(
-            "9yEzCbcYdg6MqZ5AkEh8V3YCriyN1tvmtWEHdBEUHkF6D6kN1MMD2Kd2QVWoTY67aNHNYKMUP3xfteLS2QNavJxpJdx6mWj");
-        config.SetPrivateViewKey("1f4668e8c1979b4c7dae13dc149fd95cd7ff2883becffe160c21f9e02c821c08");
+        config.SetSeed("alerts comb talent taxi beer skew mowing lukewarm gifts furnished woven boss thirsty faked jeans upon punch uttered woken typist mohawk enigma mostly noodles boss");
         await CashCowWallet.CreateWallet(config);
         await MineAtLeastToHeight(71);
 
         List<MoneroAccount> moneroAccounts = await CashCowWallet.GetAccounts(true, false, null);
         foreach (MoneroAccount account in moneroAccounts)
         {
-            Console.WriteLine(
+            TestContext.Current.SendDiagnosticMessage(
                 $"Wallet's account with index {account.AccountIndex}: total balance {account.Balance}, unlocked balance {account.UnlockedBalance}");
         }
     }
@@ -45,12 +43,12 @@ public class MiningFixture : IAsyncLifetime
         if (miningStatus.IsActive != true)
         {
             await DaemonRpc.StartMining(
-                "9yEzCbcYdg6MqZ5AkEh8V3YCriyN1tvmtWEHdBEUHkF6D6kN1MMD2Kd2QVWoTY67aNHNYKMUP3xfteLS2QNavJxpJdx6mWj",
+                "9zUKfjbRQQyXtbmvBkvHYMZ5eZBnZP7BeUatxfyPKvQcE7L328PQM2v17e6XApTHzeFmrfypgbDSdVFGbB5xuapQEQU4ufE",
                 1,
                 false,
                 false
             );
-            Console.WriteLine("Mining started.");
+            TestContext.Current.SendDiagnosticMessage("Mining started.");
         }
 
         ulong lastLoggedHeight = currentHeight;
@@ -65,12 +63,12 @@ public class MiningFixture : IAsyncLifetime
             if (height != lastLoggedHeight)
             {
                 lastLoggedHeight = height;
-                Console.WriteLine($"Current height: {height}/{targetHeight}");
+                TestContext.Current.SendDiagnosticMessage($"Current height: {height}/{targetHeight}");
             }
 
             await Task.Delay(1000);
         }
 
-        Console.WriteLine($"Mining to height {targetHeight} completed.");
+        TestContext.Current.SendDiagnosticMessage($"Mining to height {targetHeight} completed.");
     }
 }

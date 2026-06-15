@@ -24,12 +24,12 @@ public class MoneroIntegrationTestBase : UnitTestBase, IAsyncLifetime
 
     public static MoneroDaemonRpc GetDaemonRpc()
     {
-        return new MoneroDaemonRpc(new MoneroRpcConnection(new Uri(Environment.GetEnvironmentVariable("BTCPAY_XMR_DAEMON_URI") ?? "http://node_1:18081"), "", ""));
+        return new MoneroDaemonRpc(new MoneroRpcConnection(new Uri(Environment.GetEnvironmentVariable("BTCPAY_XMR_DAEMON_URI") ?? "http://127.0.0.1:18081"), "", ""));
     }
 
     public static MoneroWalletRpc GetCashCowWalletRpc()
     {
-        return new MoneroWalletRpc(new MoneroRpcConnection(new Uri(Environment.GetEnvironmentVariable("BTCPAY_XMR_CASHCOW_WALLET_DAEMON_URI") ?? "http://xmr_cashcow_wallet:18092"), "", ""));
+        return new MoneroWalletRpc(new MoneroRpcConnection(new Uri(Environment.GetEnvironmentVariable("BTCPAY_XMR_CASHCOW_WALLET_DAEMON_URI") ?? "http://127.0.0.1:18092"), "", ""));
     }
 
     private static void SetDefaultEnv(string key, string defaultValue)

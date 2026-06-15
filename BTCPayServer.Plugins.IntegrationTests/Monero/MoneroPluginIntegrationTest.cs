@@ -72,8 +72,6 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroInteg
         await s.Page.Locator("#page-primary").ClickAsync();
         await s.Page.FillAsync("#Amount", "4.20");
         await s.Page.FillAsync("#BuyerEmail", "monero@monero.com");
-        await Task.Delay(TimeSpan.FromSeconds(20),
-            TestContext.Current.CancellationToken); // wallet-rpc needs some time to sync. refactor this later
         await s.Page.Locator("#page-primary").ClickAsync();
 
         // View the invoice
@@ -92,7 +90,7 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroInteg
         await s.Page.Locator("a.nav-link[href*='monerolike/XMR']").ClickAsync();
 
         // Create a new account label
-        await s.Page.FillAsync("#NewAccountLabel", "tst-account");
+        await s.Page.FillAsync("#NewAccountLabel", "test-account");
         await s.Page.ClickAsync("button[name='command'][value='add-account']");
 
         // Select primary Account Index
@@ -105,7 +103,7 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroInteg
         var selectedValue = await s.Page.Locator("#AccountIndex").InputValueAsync();
         Assert.Equal("1", selectedValue);
 
-        // Select confirmation time to 0
+        // Select confirmation time to 10
         await s.Page.SelectOptionAsync("#SettlementConfirmationThresholdChoice", "3");
         await s.Page.ClickAsync("#SaveButton");
     }
