@@ -4,6 +4,7 @@ services:
     build:
       context: ..
       dockerfile: BTCPayServer.Plugins.IntegrationTests/Dockerfile
+    container_name: tests
     environment:
       TESTS_POSTGRES: User ID=postgres;Include Error Detail=true;Host=postgres;Port=5432;Database=btcpayserver
       TESTS_HOSTNAME: tests
@@ -13,6 +14,7 @@ services:
       BTCPAY_XMR_CASHCOW_WALLET_DAEMON_URI: http://xmr_cashcow_wallet:18092
       BTCPAY_XMR_WALLET_DAEMON_WALLETDIR: /wallet
       BTCPAY_NODEFAULTCHAIN: "true"
+      TESTS_PORT: "14142"
     depends_on:
       - postgres
       - xmr_wallet
@@ -51,6 +53,8 @@ services:
       "--hide-my-port",
       "--non-interactive"
     ]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - xmr_node_1_data:/data
     ports:
@@ -99,10 +103,12 @@ services:
       "--trusted-daemon",
       "--daemon-address=node_2:28081",
       "--wallet-dir=/wallet",
-      "--tx-notify=/bin/sh ./scripts/notifier.sh -k -X GET https://host.docker.internal:14142/monerolikedaemoncallback/tx?cryptoCode=xmr&hash=%s"
+      "--tx-notify=/bin/sh ./scripts/notifier.sh -X GET http://${BTCPAY_NOTIFY_HOST:-host.docker.internal}:${TESTS_PORT:-14142}/monerolikedaemoncallback/tx?cryptoCode=xmr&hash=%s"
     ]
     ports:
       - "18082:18082"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - xmr_wallet:/wallet
     depends_on:

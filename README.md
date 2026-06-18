@@ -75,7 +75,8 @@ To build and run integration tests, run the following commands:
 
 ```bash
 dotnet build btcpay-monero-plugin.sln
-docker compose -f BTCPayServer.Plugins.IntegrationTests/docker-compose.yml run tests
+export BTCPAY_NOTIFY_HOST=tests 
+docker compose -f BTCPayServer.Plugins.IntegrationTests/docker-compose.yml up tests
 ```
 
 ## Code formatting

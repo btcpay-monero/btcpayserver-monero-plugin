@@ -1,8 +1,11 @@
+using System.Globalization;
+
 using BTCPayServer.Plugins.Monero.Services;
 using BTCPayServer.Rating;
 using BTCPayServer.Services.Rates;
 using BTCPayServer.Tests.Mocks;
 
+using Monero.Wallet.Common;
 using Monero.Wallet.Rpc;
 
 using Xunit;
@@ -13,9 +16,10 @@ namespace BTCPayServer.Plugins.IntegrationTests.Monero;
 public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroIntegrationTestBase(helper)
 {
     [Fact]
-    public async Task ShouldEnableMoneroPluginSuccessfully()
+    public async Task ShouldEnableMoneroPluginSuccessfullyAndPayForInvoice()
     {
         await using var s = CreatePlaywrightTester();
+        s.Server.PayTester.BindAllInterfaces = true;
         await s.StartAsync();
 
         if (s.Server.PayTester.MockRates)
@@ -30,9 +34,9 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroInteg
             rateProviderFactory.Providers.Add("coingecko", coinAverageMock);
 
             var kraken = new MockRateProvider();
-            kraken.ExchangeRates.Add(new PairRate(CurrencyPair.Parse("BTC_USD"), new BidAsk(0.1m)));
-            kraken.ExchangeRates.Add(new PairRate(CurrencyPair.Parse("XMR_USD"), new BidAsk(0.1m)));
-            kraken.ExchangeRates.Add(new PairRate(CurrencyPair.Parse("XMR_BTC"), new BidAsk(0.1m)));
+            kraken.ExchangeRates.Add(new PairRate(CurrencyPair.Parse("BTC_USD"), new BidAsk(50000m)));
+            kraken.ExchangeRates.Add(new PairRate(CurrencyPair.Parse("XMR_USD"), new BidAsk(150m)));
+            kraken.ExchangeRates.Add(new PairRate(CurrencyPair.Parse("XMR_BTC"), new BidAsk(0.003m)));
             rateProviderFactory.Providers.Add("kraken", kraken);
         }
 
@@ -86,6 +90,23 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroInteg
             .InnerTextAsync();
         Assert.Equal("$4.20", totalFiat);
 
+        // Pay the invoice
+        var address = await s.Page
+            .Locator("#Address_XMR-CHAIN [data-text]")
+            .GetAttributeAsync("data-text");
+        var amountDueRaw = await s.Page
+            .Locator("#PaymentDetails-AmountDue dd.clipboard-button")
+            .GetAttributeAsync("data-clipboard");
+        var amountDueXmr = decimal.Parse(amountDueRaw!, CultureInfo.InvariantCulture);
+        long amountDuePiconero = (long)(amountDueXmr * 1_000_000_000_000m);
+        await GetCashCowWalletRpc().TransferAsync([
+            new TransferDestination
+            {
+                Address = address!,
+                Amount = amountDuePiconero
+            }
+        ]);
+
         await s.Page.GoBackAsync();
         await s.Page.Locator("a.nav-link[href*='monerolike/XMR']").ClickAsync();
 
@@ -103,9 +124,13 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroInteg
         var selectedValue = await s.Page.Locator("#AccountIndex").InputValueAsync();
         Assert.Equal("1", selectedValue);
 
-        // Select confirmation time to 10
-        await s.Page.SelectOptionAsync("#SettlementConfirmationThresholdChoice", "3");
-        await s.Page.ClickAsync("#SaveButton");
+        // Mine some blocks to verify
+        await MiningFixture.MineToHeightOffset(8);
+
+        // View the settled invoice
+        await s.Page.Locator("a.nav-link[href*='invoices']").ClickAsync();
+        var settledBadge = s.Page.Locator($"[data-invoice-state-badge='{invoiceId}']");
+        Assert.Equal("Settled", await settledBadge.InnerTextAsync());
     }
 
     [Fact]

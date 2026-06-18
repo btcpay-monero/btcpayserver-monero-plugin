@@ -16,6 +16,7 @@ public class MoneroIntegrationTestBase : UnitTestBase, IAsyncLifetime
         SetDefaultEnv("BTCPAY_XMR_WALLET_DAEMON_URI", "http://127.0.0.1:18082");
         SetDefaultEnv("BTCPAY_XMR_WALLET_DAEMON_WALLETDIR", "/wallet");
         SetDefaultEnv("BTCPAY_NODEFAULTCHAIN", "true");
+        SetDefaultEnv("TESTS_PORT", "14142");
     }
 
     public ValueTask InitializeAsync() => ValueTask.CompletedTask;

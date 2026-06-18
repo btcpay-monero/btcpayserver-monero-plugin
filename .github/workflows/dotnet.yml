@@ -43,7 +43,9 @@ jobs:
       run: dotnet test BTCPayServer.Plugins.UnitTests -c Release --no-build -v n /p:CollectCoverage=true /p:CoverletOutput=../coverage/unit/ /p:CoverletOutputFormat=cobertura /p:Include="[BTCPayServer.Plugins.Monero*]*"
 
     - name: Run integration tests
-      run: docker compose -f BTCPayServer.Plugins.IntegrationTests/docker-compose.yml run tests
+      run: |
+        export BTCPAY_NOTIFY_HOST=tests
+        docker compose -f BTCPayServer.Plugins.IntegrationTests/docker-compose.yml up tests
 
     - name: Cleanup Docker containers
       if: always()

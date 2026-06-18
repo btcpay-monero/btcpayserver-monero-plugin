@@ -34,6 +34,12 @@ public class MiningFixture : IAsyncLifetime
         await DaemonRpc.StopMining();
     }
 
+    public static async Task MineToHeightOffset(ulong additionalBlocks)
+    {
+        var currentHeight = await DaemonRpc.GetHeight();
+        await MineAtLeastToHeight(currentHeight + additionalBlocks);
+    }
+
     private static async Task MineAtLeastToHeight(ulong targetHeight)
     {
         var currentHeight = await CashCowWallet.GetHeight();
