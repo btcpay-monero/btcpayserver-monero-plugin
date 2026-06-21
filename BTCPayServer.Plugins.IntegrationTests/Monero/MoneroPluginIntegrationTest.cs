@@ -5,6 +5,8 @@ using BTCPayServer.Rating;
 using BTCPayServer.Services.Rates;
 using BTCPayServer.Tests.Mocks;
 
+using Microsoft.Playwright;
+
 using Monero.Wallet.Common;
 using Monero.Wallet.Rpc;
 
@@ -16,7 +18,7 @@ namespace BTCPayServer.Plugins.IntegrationTests.Monero;
 public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroIntegrationTestBase(helper)
 {
     [Fact]
-    public async Task ShouldEnableMoneroPluginSuccessfullyAndPayForInvoice()
+    public async Task ShouldEnablePluginAndPartiallyPayForInvoice()
     {
         await using var s = CreatePlaywrightTester();
         s.Server.PayTester.BindAllInterfaces = true;
@@ -90,22 +92,8 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroInteg
             .InnerTextAsync();
         Assert.Equal("$4.20", totalFiat);
 
-        // Pay the invoice
-        var address = await s.Page
-            .Locator("#Address_XMR-CHAIN [data-text]")
-            .GetAttributeAsync("data-text");
-        var amountDueRaw = await s.Page
-            .Locator("#PaymentDetails-AmountDue dd.clipboard-button")
-            .GetAttributeAsync("data-clipboard");
-        var amountDueXmr = decimal.Parse(amountDueRaw!, CultureInfo.InvariantCulture);
-        long amountDuePiconero = (long)(amountDueXmr * 1_000_000_000_000m);
-        await GetCashCowWalletRpc().TransferAsync([
-            new TransferDestination
-            {
-                Address = address!,
-                Amount = amountDuePiconero
-            }
-        ]);
+        // Pay half of the invoice
+        await PayInvoice(s.Page, divisor: 2);
 
         await s.Page.GoBackAsync();
         await s.Page.Locator("a.nav-link[href*='monerolike/XMR']").ClickAsync();
@@ -127,10 +115,38 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroInteg
         // Mine some blocks to verify
         await MiningFixture.MineToHeightOffset(8);
 
-        // View the settled invoice
+        // View the partially paid invoice
         await s.Page.Locator("a.nav-link[href*='invoices']").ClickAsync();
-        var settledBadge = s.Page.Locator($"[data-invoice-state-badge='{invoiceId}']");
-        Assert.Equal("Settled", await settledBadge.InnerTextAsync());
+        var partialBadge = s.Page.Locator($"[data-invoice-state-badge='{invoiceId}']");
+        Assert.Equal("New (paid partial) ", await partialBadge.InnerTextAsync());
+        await s.Page.Locator(".invoice-details-link").ClickAsync();
+        await s.Page.Locator("a.invoice-checkout-link").ClickAsync();
+        await Assertions.Expect(s.Page.Locator("#PaymentInfo"))
+            .ToContainTextAsync("The invoice hasn't been paid in full.");
+
+        // Pay the invoice fully
+        await PayInvoice(s.Page);
+
+        await MiningFixture.MineToHeightOffset(7);
+
+        // Verify amount paid on receipt
+        await s.Page.Locator("#ReceiptLink").ClickAsync();
+        var amountPaidSection = s.Page.Locator("#InvoiceSummary .d-flex.flex-column",
+            new PageLocatorOptions { HasText = "Amount Paid" });
+        await Assertions.Expect(amountPaidSection.Locator("dt.fs-2")).ToHaveTextAsync("$4.20");
+    }
+
+    private static async Task PayInvoice(IPage page, int divisor = 1)
+    {
+        var address = await page.Locator("#Address_XMR-CHAIN [data-text]")
+            .GetAttributeAsync("data-text");
+        var amountDueRaw = await page.Locator("#PaymentDetails-AmountDue dd.clipboard-button")
+            .GetAttributeAsync("data-clipboard");
+        var amountDueXmr = decimal.Parse(amountDueRaw!, CultureInfo.InvariantCulture);
+        long amountInPiconero = (long)(amountDueXmr * 1_000_000_000_000m) / divisor;
+        await GetCashCowWalletRpc().TransferAsync([
+            new TransferDestination { Address = address!, Amount = amountInPiconero }
+        ]);
     }
 
     [Fact]
@@ -178,7 +194,8 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroInteg
         await s.CreateNewStore();
         await s.Page.Locator("a.nav-link[href*='monerolike/XMR']").ClickAsync();
         await s.Page.Locator("input#PrimaryAddress")
-            .FillAsync("9yEzCbcYdg6MqZ5AkEh8V3YCriyN1tvmtWEHdBEUHkF6D6kN1MMD2Kd2QVWoTY67aNHNYKMUP3xfteLS2QNavJxpJdx6mWj");
+            .FillAsync(
+                "9yEzCbcYdg6MqZ5AkEh8V3YCriyN1tvmtWEHdBEUHkF6D6kN1MMD2Kd2QVWoTY67aNHNYKMUP3xfteLS2QNavJxpJdx6mWj");
         await s.Page.Locator("input#PrivateViewKey")
             .FillAsync("1f4668e8c1979b4c7dae13dc149fd95cd7ff2883becffe160c21f9e02c821c08");
         await s.Page.Locator("input#RestoreHeight").FillAsync("0");
