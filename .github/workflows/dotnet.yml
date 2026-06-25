@@ -45,7 +45,7 @@ jobs:
     - name: Run integration tests
       run: |
         export BTCPAY_NOTIFY_HOST=tests
-        docker compose -f BTCPayServer.Plugins.IntegrationTests/docker-compose.yml up tests
+        docker compose -f BTCPayServer.Plugins.IntegrationTests/docker-compose.yml up --abort-on-container-exit --exit-code-from tests tests
 
     - name: Cleanup Docker containers
       if: always()

@@ -3,6 +3,7 @@ using System.Globalization;
 using BTCPayServer.Plugins.Monero.Services;
 using BTCPayServer.Rating;
 using BTCPayServer.Services.Rates;
+using BTCPayServer.Tests;
 using BTCPayServer.Tests.Mocks;
 
 using Microsoft.Playwright;
@@ -18,12 +19,103 @@ namespace BTCPayServer.Plugins.IntegrationTests.Monero;
 public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroIntegrationTestBase(helper)
 {
     [Fact]
-    public async Task ShouldEnablePluginAndPartiallyPayForInvoice()
+    public async Task ShouldSettleInvoiceAfterPartialThenFullPayment()
     {
         await using var s = CreatePlaywrightTester();
         s.Server.PayTester.BindAllInterfaces = true;
         await s.StartAsync();
 
+        var invoiceId = await SetupStoreWithXmrAndCreateInvoice(s, amount: "4.20");
+
+        // Pay half of the invoice
+        await PayInvoice(s.Page, divisor: 2);
+
+        await s.Page.GoBackAsync();
+        await s.Page.Locator("a.nav-link[href*='monerolike/XMR']").ClickAsync();
+
+        // Create a new account label
+        await s.Page.FillAsync("#NewAccountLabel", "test-account");
+        await s.Page.ClickAsync("button[name='command'][value='add-account']");
+
+        // Select primary Account Index
+        await s.Page.Locator("a.nav-link[href*='monerolike/XMR']").ClickAsync();
+        await s.Page.SelectOptionAsync("#AccountIndex", "1");
+        await s.Page.ClickAsync("#SaveButton");
+
+        // Verify selected account index
+        await s.Page.Locator("a.nav-link[href*='monerolike/XMR']").ClickAsync();
+        var selectedValue = await s.Page.Locator("#AccountIndex").InputValueAsync();
+        Assert.Equal("1", selectedValue);
+
+        // Mine some blocks to verify
+        await MiningFixture.MineToHeightOffset(8);
+
+        await AssertPartialPaymentState(s.Page, invoiceId);
+
+        // Pay the invoice fully
+        await PayInvoice(s.Page);
+
+        await MiningFixture.MineToHeightOffset(7);
+
+        await AssertFullyPaidReceipt(s.Page, "$4.20");
+    }
+
+    [Fact]
+    public async Task ShouldReuseOriginalAddressForSubsequentPartialPayment()
+    {
+        await using var s = CreatePlaywrightTester();
+        await s.StartAsync();
+
+        var invoiceId = await SetupStoreWithXmrAndCreateInvoice(s, amount: "4.20");
+
+        // Pay half of the invoice
+        (decimal halfOfTheOriginalPay, string originalAddress) = await PayInvoice(s.Page, divisor: 2);
+
+        await s.Page.GoBackAsync();
+        await s.Page.Locator("a.nav-link[href*='monerolike/XMR']").ClickAsync();
+
+        // Create a new account label
+        await s.Page.FillAsync("#NewAccountLabel", "test-account");
+        await s.Page.ClickAsync("button[name='command'][value='add-account']");
+
+        // Select primary Account Index
+        await s.Page.Locator("a.nav-link[href*='monerolike/XMR']").ClickAsync();
+        await s.Page.SelectOptionAsync("#AccountIndex", "1");
+        await s.Page.ClickAsync("#SaveButton");
+
+        // Verify selected account index
+        await s.Page.Locator("a.nav-link[href*='monerolike/XMR']").ClickAsync();
+        var selectedValue = await s.Page.Locator("#AccountIndex").InputValueAsync();
+        Assert.Equal("1", selectedValue);
+
+        // Mine some blocks to verify
+        await MiningFixture.MineToHeightOffset(8);
+
+        await AssertPartialPaymentState(s.Page, invoiceId);
+
+        // Pay the invoice with original half
+        await PayInvoice(s.Page, 1, halfOfTheOriginalPay, originalAddress);
+
+        await MiningFixture.MineToHeightOffset(7);
+
+        // Pay the invoice fully
+        await PayInvoice(s.Page);
+
+        // Mine blocks to verify
+        await MiningFixture.MineToHeightOffset(6);
+
+        await s.Page.Locator("#ReceiptLink").ClickAsync();
+
+        // Second payment should reuse original address
+        var destinationCells = s.Page.Locator("#PaymentDetails table tbody tr td:first-child .truncate-center-text");
+        var destinations = await destinationCells.AllInnerTextsAsync();
+        Assert.Equal(3, destinations.Count);
+        Assert.Equal(originalAddress, destinations[0]);
+        Assert.Equal(originalAddress, destinations[1]);
+    }
+
+    private static async Task<string> SetupStoreWithXmrAndCreateInvoice(PlaywrightTester s, string amount)
+    {
         if (s.Server.PayTester.MockRates)
         {
             var rateProviderFactory = s.Server.PayTester.GetService<RateProviderFactory>();
@@ -76,77 +168,60 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroInteg
         // Generate a new invoice
         await s.Page.Locator("a.nav-link[href*='invoices']").ClickAsync();
         await s.Page.Locator("#page-primary").ClickAsync();
-        await s.Page.FillAsync("#Amount", "4.20");
+        await s.Page.FillAsync("#Amount", amount);
         await s.Page.FillAsync("#BuyerEmail", "monero@monero.com");
         await s.Page.Locator("#page-primary").ClickAsync();
 
         // View the invoice
         var href = await s.Page.Locator("a[href^='/i/']").GetAttributeAsync("href");
-        var invoiceId = href?.Split("/i/").Last();
+        var invoiceId = href?.Split("/i/").Last()!;
         await s.Page.Locator($"a[href='/i/{invoiceId}']").ClickAsync();
         await s.Page.ClickAsync("#DetailsToggle");
 
-        // Verify the total fiat amount is $4.20
+        // Verify the total fiat amount
         var totalFiat = await s.Page
             .Locator("#PaymentDetails-TotalFiat dd.clipboard-button")
             .InnerTextAsync();
-        Assert.Equal("$4.20", totalFiat);
+        Assert.Equal($"${amount}", totalFiat);
 
-        // Pay half of the invoice
-        await PayInvoice(s.Page, divisor: 2);
-
-        await s.Page.GoBackAsync();
-        await s.Page.Locator("a.nav-link[href*='monerolike/XMR']").ClickAsync();
-
-        // Create a new account label
-        await s.Page.FillAsync("#NewAccountLabel", "test-account");
-        await s.Page.ClickAsync("button[name='command'][value='add-account']");
-
-        // Select primary Account Index
-        await s.Page.Locator("a.nav-link[href*='monerolike/XMR']").ClickAsync();
-        await s.Page.SelectOptionAsync("#AccountIndex", "1");
-        await s.Page.ClickAsync("#SaveButton");
-
-        // Verify selected account index
-        await s.Page.Locator("a.nav-link[href*='monerolike/XMR']").ClickAsync();
-        var selectedValue = await s.Page.Locator("#AccountIndex").InputValueAsync();
-        Assert.Equal("1", selectedValue);
-
-        // Mine some blocks to verify
-        await MiningFixture.MineToHeightOffset(8);
-
-        // View the partially paid invoice
-        await s.Page.Locator("a.nav-link[href*='invoices']").ClickAsync();
-        var partialBadge = s.Page.Locator($"[data-invoice-state-badge='{invoiceId}']");
-        Assert.Equal("New (paid partial) ", await partialBadge.InnerTextAsync());
-        await s.Page.Locator(".invoice-details-link").ClickAsync();
-        await s.Page.Locator("a.invoice-checkout-link").ClickAsync();
-        await Assertions.Expect(s.Page.Locator("#PaymentInfo"))
-            .ToContainTextAsync("The invoice hasn't been paid in full.");
-
-        // Pay the invoice fully
-        await PayInvoice(s.Page);
-
-        await MiningFixture.MineToHeightOffset(7);
-
-        // Verify amount paid on receipt
-        await s.Page.Locator("#ReceiptLink").ClickAsync();
-        var amountPaidSection = s.Page.Locator("#InvoiceSummary .d-flex.flex-column",
-            new PageLocatorOptions { HasText = "Amount Paid" });
-        await Assertions.Expect(amountPaidSection.Locator("dt.fs-2")).ToHaveTextAsync("$4.20");
+        return invoiceId;
     }
 
-    private static async Task PayInvoice(IPage page, int divisor = 1)
+    private static async Task AssertPartialPaymentState(IPage page, string invoiceId)
     {
-        var address = await page.Locator("#Address_XMR-CHAIN [data-text]")
+        await page.Locator("a.nav-link[href*='invoices']").ClickAsync();
+        var partialBadge = page.Locator($"[data-invoice-state-badge='{invoiceId}']");
+        await Assertions.Expect(partialBadge).ToContainTextAsync("New (paid partial) ");
+        await page.Locator(".invoice-details-link").ClickAsync();
+        await page.Locator("a.invoice-checkout-link").ClickAsync();
+        await Assertions.Expect(page.Locator("#PaymentInfo"))
+            .ToContainTextAsync("The invoice hasn't been paid in full.");
+    }
+
+    private static async Task AssertFullyPaidReceipt(IPage page, string expectedFiatAmount)
+    {
+        await page.Locator("#ReceiptLink").ClickAsync();
+        var amountPaidSection = page.Locator("#InvoiceSummary .d-flex.flex-column",
+            new PageLocatorOptions { HasText = "Amount Paid" });
+        await Assertions.Expect(amountPaidSection.Locator("dt.fs-2")).ToHaveTextAsync(expectedFiatAmount);
+    }
+
+    private static async Task<(decimal AmountPaid, string Address)> PayInvoice(IPage page, int divisor = 1,
+        decimal? amountDueXmr = null, string? address = null)
+    {
+        address ??= await page.Locator("#Address_XMR-CHAIN [data-text]")
             .GetAttributeAsync("data-text");
-        var amountDueRaw = await page.Locator("#PaymentDetails-AmountDue dd.clipboard-button")
-            .GetAttributeAsync("data-clipboard");
-        var amountDueXmr = decimal.Parse(amountDueRaw!, CultureInfo.InvariantCulture);
-        long amountInPiconero = (long)(amountDueXmr * 1_000_000_000_000m) / divisor;
+        if (amountDueXmr is null)
+        {
+            var raw = await page.Locator("#PaymentDetails-AmountDue dd.clipboard-button")
+                .GetAttributeAsync("data-clipboard");
+            amountDueXmr = decimal.Parse(raw!, CultureInfo.InvariantCulture);
+        }
+        long piconero = (long)(amountDueXmr.Value * 1_000_000_000_000m) / divisor;
         await GetCashCowWalletRpc().TransferAsync([
-            new TransferDestination { Address = address!, Amount = amountInPiconero }
+            new TransferDestination { Address = address!, Amount = piconero }
         ]);
+        return (piconero / 1_000_000_000_000m, address!);
     }
 
     [Fact]
