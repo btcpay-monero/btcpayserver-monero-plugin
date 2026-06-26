@@ -210,7 +210,7 @@ namespace BTCPayServer.Plugins.Monero.Services
                     }
 
 
-                    return HandlePaymentData(cryptoCode, transfer.Amount, transfer.SubaddressIndex.AccountIndex,
+                    return HandlePaymentData(cryptoCode, transfer.Address, transfer.Amount, transfer.SubaddressIndex.AccountIndex,
                         transfer.SubaddressIndex.Index, transfer.TransactionId, transfer.Confirmations, transfer.Height,
                         transfer.UnlockTime, invoice,
                         updatedPaymentEntities);
@@ -259,6 +259,7 @@ namespace BTCPayServer.Plugins.Monero.Services
                 var index = destination.First().SubaddressIndex;
 
                 await HandlePaymentData(cryptoCode,
+                    destination.Key,
                     destination.Sum(destination1 => destination1.Amount),
                     index.AccountIndex,
                     index.Index,
@@ -328,7 +329,7 @@ namespace BTCPayServer.Plugins.Monero.Services
             }
         }
 
-        private async Task HandlePaymentData(string cryptoCode, long totalAmount, uint subaccountIndex,
+        private async Task HandlePaymentData(string cryptoCode, string address, long totalAmount, uint subaccountIndex,
             uint subaddressIndex,
             string txId, int confirmations, ulong blockHeight, int locktime, InvoiceEntity invoice,
             List<(PaymentEntity Payment, InvoiceEntity invoice)> paymentsToUpdate)
@@ -347,6 +348,16 @@ namespace BTCPayServer.Plugins.Monero.Services
                 LockTime = locktime,
                 InvoiceSettledConfirmationThreshold = promptDetails.InvoiceSettledConfirmationThreshold
             };
+
+            // set destination address from transfer
+            var prompts = invoice.GetPaymentPrompts();
+            var prompt = prompts[pmi];
+            if (prompt != null)
+            {
+                prompt.Destination = address;
+                invoice.SetPaymentPrompts(prompts);
+            }
+
             var status = GetStatus(details, invoice.SpeedPolicy) ? PaymentStatus.Settled : PaymentStatus.Processing;
             var paymentData = new PaymentData
             {

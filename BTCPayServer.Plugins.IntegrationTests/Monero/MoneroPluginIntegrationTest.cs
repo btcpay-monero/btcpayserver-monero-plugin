@@ -64,6 +64,7 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroInteg
     public async Task ShouldReuseOriginalAddressForSubsequentPartialPayment()
     {
         await using var s = CreatePlaywrightTester();
+        s.Server.PayTester.BindAllInterfaces = true;
         await s.StartAsync();
 
         var invoiceId = await SetupStoreWithXmrAndCreateInvoice(s, amount: "4.20");
