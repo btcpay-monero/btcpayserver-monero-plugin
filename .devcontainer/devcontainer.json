@@ -1,0 +1,47 @@
+{
+  "name": "BTCPayServer Monero Plugin",
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "devcontainer",
+  "workspaceFolder": "/workspace",
+  "remoteUser": "ubuntu",
+  "initializeCommand": "git submodule update --init --recursive",
+  "postCreateCommand": "dotnet restore --force && dotnet build BTCPayServer.Plugins.IntegrationTests -c Release -maxcpucount:1",
+  "postStartCommand": "sudo chmod 777 /wallet",
+  "waitFor": "postCreateCommand",
+  "forwardPorts": [14142, 6080],
+  "portsAttributes": {
+    "14142": {
+      "label": "BTCPayServer",
+      "onAutoForward": "openBrowser"
+    },
+    "6080": {
+      "label": "novnc"
+    }
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils": {
+      "username": "ubuntu",
+      "installZsh": false,
+      "installOhMyZsh": false,
+      "upgradePackages": false
+    },
+    "ghcr.io/devcontainers/features/desktop-lite": {
+      "webPort": "6080"
+    }
+  },
+  "shutdownAction": "stopCompose",
+  "customizations": {
+    "jetbrains": {
+      "backend": "Rider",
+      "settings": {
+        "SolutionFile": "/workspace/btcpay-monero-plugin.sln"
+      }
+    },
+    "vscode": {
+      "extensions": [
+        "ms-dotnettools.csdevkit",
+        "ms-dotnettools.csharp"
+      ]
+    }
+  }
+}

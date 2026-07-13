@@ -1,0 +1,24 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Monero-Devcontainer" type="DotNetProject" factoryName=".NET Project">
+    <option name="EXE_PATH" value="" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/submodules/btcpayserver/BTCPayServer" />
+    <option name="PASS_PARENT_ENVS" value="1" />
+    <envs>
+      <env name="ASPNETCORE_ENVIRONMENT" value="Development" />
+      <env name="BTCPAY_NETWORK" value="regtest" />
+      <env name="BTCPAY_NODEFAULTCHAIN" value="true" />
+      <env name="BTCPAY_POSTGRES" value="User ID=postgres;Include Error Detail=true;Host=postgres;Port=5432;Database=btcpayserver" />
+      <env name="BTCPAY_PORT" value="14142" />
+      <env name="BTCPAY_CHEATMODE" value="true" />
+      <env name="BTCPAY_VERBOSE" value="true" />
+      <env name="BTCPAY_XMR_DAEMON_URI" value="http://monerod:18081" />
+      <env name="BTCPAY_XMR_WALLET_DAEMON_URI" value="http://xmr_wallet:18082" />
+    </envs>
+    <option name="PROJECT_PATH" value="$PROJECT_DIR$/submodules/btcpayserver/BTCPayServer/BTCPayServer.csproj" />
+    <browser url="http://127.0.0.1:14142" start="true" />
+    <method v="2">
+      <option name="Build" />
+    </method>
+  </configuration>
+</component>
+

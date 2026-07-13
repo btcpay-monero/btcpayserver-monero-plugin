@@ -197,18 +197,15 @@ namespace BTCPayServer.Plugins.Monero.Controllers
                 }
                 if (valid)
                 {
-                    if (_MoneroRpcProvider.Summaries.TryGetValue(cryptoCode, out var summary))
+                    if (_MoneroRpcProvider.Summaries.TryGetValue(cryptoCode, out var summary) && summary.WalletAvailable)
                     {
-                        if (summary.WalletAvailable)
+                        TempData.SetStatusMessageModel(new StatusMessageModel
                         {
-                            TempData.SetStatusMessageModel(new StatusMessageModel
-                            {
-                                Severity = StatusMessageModel.StatusSeverity.Error,
-                                Message = StringLocalizer["There is already an active wallet configured for {0}. Replacing it would break any existing invoices!", cryptoCode].Value
-                            });
-                            return RedirectToAction(nameof(GetStoreMoneroLikePaymentMethod),
-                                new { cryptoCode });
-                        }
+                            Severity = StatusMessageModel.StatusSeverity.Error,
+                            Message = StringLocalizer["There is already an active wallet configured for {0}. Replacing it would break any existing invoices!", cryptoCode].Value
+                        });
+                        return RedirectToAction(nameof(GetStoreMoneroLikePaymentMethod),
+                            new { cryptoCode });
                     }
                     try
                     {
