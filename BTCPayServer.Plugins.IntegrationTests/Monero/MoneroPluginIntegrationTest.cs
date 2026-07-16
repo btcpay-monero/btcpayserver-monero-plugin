@@ -11,6 +11,9 @@ namespace BTCPayServer.Plugins.IntegrationTests.Monero;
 
 public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroIntegrationTestBase(helper)
 {
+    private const string PrimaryWalletAddress = "43Pnj6ZKGFTJhaLhiecSFfLfr64KPJZw7MyGH73T6PTDekBBvsTAaWEUSM4bmJqDuYLizhA13jQkMRPpz9VXBCBqQQb6y5L";
+    private const string PrimaryViewKey = "1bfa03b0c78aa6bc8292cf160ec9875657d61e889c41d0ebe5c54fd3a2c4b40e";
+
     [Fact]
     public async Task ShouldEnableMoneroPluginSuccessfully()
     {
@@ -38,11 +41,8 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroInteg
         await s.RegisterNewUser(true);
         await s.CreateNewStore(preferredExchange: "Kraken");
         await s.Page.Locator("a.nav-link[href*='monerolike/XMR']").ClickAsync();
-        await s.Page.Locator("input#PrimaryAddress")
-            .FillAsync(
-                "43Pnj6ZKGFTJhaLhiecSFfLfr64KPJZw7MyGH73T6PTDekBBvsTAaWEUSM4bmJqDuYLizhA13jQkMRPpz9VXBCBqQQb6y5L");
-        await s.Page.Locator("input#PrivateViewKey")
-            .FillAsync("1bfa03b0c78aa6bc8292cf160ec9875657d61e889c41d0ebe5c54fd3a2c4b40e");
+        await s.Page.Locator("input#PrimaryAddress").FillAsync(PrimaryWalletAddress);
+        await s.Page.Locator("input#PrivateViewKey").FillAsync(PrimaryViewKey);
         await s.Page.Locator("input#RestoreHeight").FillAsync("0");
         await s.Page.ClickAsync("button[name='command'][value='set-wallet-details']");
         var message = await s.Page
@@ -120,8 +120,7 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroInteg
         await s.Page.Locator("a.nav-link[href*='monerolike/XMR']").ClickAsync();
         await s.Page.Locator("input#PrimaryAddress")
             .FillAsync("wrongprimaryaddressfSF6ZKGFT7MyGH73T6PTDekBBvsTAaWEUSM4bmJqDuYLizhA13jQkMRPpz9VXBCBqQQb6y5L");
-        await s.Page.Locator("input#PrivateViewKey")
-            .FillAsync("1bfa03b0c78aa6bc8292cf160ec9875657d61e889c41d0ebe5c54fd3a2c4b40e");
+        await s.Page.Locator("input#PrivateViewKey").FillAsync(PrimaryViewKey);
         await s.Page.Locator("input#RestoreHeight").FillAsync("0");
         await s.Page.ClickAsync("button[name='command'][value='set-wallet-details']");
         var errorText = await s.Page
@@ -142,9 +141,8 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroInteg
             .SendCommandAsync<GenerateFromKeysRequest, GenerateFromKeysResponse>("generate_from_keys",
                 new GenerateFromKeysRequest
                 {
-                    PrimaryAddress =
-                        "43Pnj6ZKGFTJhaLhiecSFfLfr64KPJZw7MyGH73T6PTDekBBvsTAaWEUSM4bmJqDuYLizhA13jQkMRPpz9VXBCBqQQb6y5L",
-                    PrivateViewKey = "1bfa03b0c78aa6bc8292cf160ec9875657d61e889c41d0ebe5c54fd3a2c4b40e",
+                    PrimaryAddress = PrimaryWalletAddress,
+                    PrivateViewKey = PrimaryViewKey,
                     WalletFileName = "wallet",
                     Password = ""
                 }, TestContext.Current.CancellationToken);
@@ -153,10 +151,8 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroInteg
         await s.RegisterNewUser(true);
         await s.CreateNewStore();
         await s.Page.Locator("a.nav-link[href*='monerolike/XMR']").ClickAsync();
-        await s.Page.Locator("input#PrimaryAddress")
-            .FillAsync("43Pnj6ZKGFTJhaLhiecSFfLfr64KPJZw7MyGH73T6PTDekBBvsTAaWEUSM4bmJqDuYLizhA13jQkMRPpz9VXBCBqQQb6y5L");
-        await s.Page.Locator("input#PrivateViewKey")
-            .FillAsync("1bfa03b0c78aa6bc8292cf160ec9875657d61e889c41d0ebe5c54fd3a2c4b40e");
+        await s.Page.Locator("input#PrimaryAddress").FillAsync(PrimaryWalletAddress);
+        await s.Page.Locator("input#PrivateViewKey").FillAsync(PrimaryViewKey);
         await s.Page.Locator("input#RestoreHeight").FillAsync("0");
         await s.Page.ClickAsync("button[name='command'][value='set-wallet-details']");
         var errorText = await s.Page
@@ -189,7 +185,7 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroInteg
         SkipUnless = nameof(IntegrationTestUtils.RunsInContainer),
         SkipType = typeof(IntegrationTestUtils)
     )]
-    public async Task ShouldLoadViewWalletWithPasswordOnStartUpIfExists()
+    public async Task CompleteMigratePasswordFromFile()
     {
         await IntegrationTestUtils.CreateTestXmrWalletWithPasswordAsync("pass123", "wallet_password");
         await IntegrationTestUtils.CloseTestXmrWalletFilesViaRpc();
@@ -204,5 +200,8 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroInteg
             .InnerTextAsync();
 
         Assert.Contains("Wallet RPC available: True", walletRpcIsAvailable);
+
+        var warningText = await s.Page.Locator("div.alert.alert-warning").InnerTextAsync();
+        Assert.Contains("Password file deprecation complete.", warningText);
     }
 }
