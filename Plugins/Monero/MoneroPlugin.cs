@@ -26,6 +26,8 @@ namespace BTCPayServer.Plugins.Monero;
 
 public class MoneroPlugin : BaseBTCPayServerPlugin
 {
+    public override Version Version => new(1, 3, 1);
+
     public override IBTCPayServerPlugin.PluginDependency[] Dependencies { get; } =
     [
         new() { Identifier = nameof(BTCPayServer), Condition = ">=2.3.7" }
@@ -45,7 +47,7 @@ public class MoneroPlugin : BaseBTCPayServerPlugin
             DefaultRateRules =
             [
                 "XMR_X = XMR_BTC * BTC_X",
-                    "XMR_BTC = kraken(XMR_BTC)"
+                "XMR_BTC = kraken(XMR_BTC)"
             ],
             CryptoImagePath = "monero.svg",
             UriScheme = "monero"

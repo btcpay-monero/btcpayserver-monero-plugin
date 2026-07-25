@@ -1,9 +1,10 @@
+@using BTCPayServer.Abstractions.Models
 @using MoneroLikePaymentMethodViewModel = BTCPayServer.Plugins.Monero.Controllers.UIMoneroLikeStoreController.MoneroLikePaymentMethodViewModel
 @using MoneroLikeSettlementThresholdChoice = BTCPayServer.Plugins.Monero.Controllers.UIMoneroLikeStoreController.MoneroLikeSettlementThresholdChoice;
 @model MoneroLikePaymentMethodViewModel
 
 @{
-    ViewData.SetActivePage(Model.CryptoCode, StringLocalizer["{0} Settings", Model.CryptoCode], Model.CryptoCode);
+    ViewData.SetLayoutModel(new LayoutModel(Model.CryptoCode, StringLocalizer["{0} Settings", Model.CryptoCode]));
     Layout = "_Layout";
 }
 
