@@ -13,7 +13,7 @@ services:
       BTCPAY_XMR_WALLET_DAEMON_URI: http://xmr_wallet:18082
       BTCPAY_XMR_CASHCOW_WALLET_DAEMON_URI: http://xmr_cashcow_wallet:18092
       BTCPAY_XMR_WALLET_DAEMON_WALLETDIR: /wallet
-      BTCPAY_NODEFAULTCHAIN: "true"
+      PLAYWRIGHT_HEADLESS: "true"
       TESTS_PORT: "14142"
     depends_on:
       - postgres
@@ -53,8 +53,6 @@ services:
       "--hide-my-port",
       "--non-interactive"
     ]
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     volumes:
       - xmr_node_1_data:/data
     ports:
@@ -73,7 +71,7 @@ services:
       "--log-level=2",
       "--rpc-bind-ip=0.0.0.0",
       "--confirm-external-bind",
-      "--block-notify=/bin/sh ./scripts/notifier.sh -k -X GET https://host.docker.internal:14142/monerolikedaemoncallback/block?cryptoCode=xmr&hash=%s",
+      "--block-notify=/bin/sh ./scripts/notifier.sh -X GET http://${BTCPAY_NOTIFY_HOST:-host.docker.internal}:${TESTS_PORT:-14142}/monerolikedaemoncallback/block?cryptoCode=xmr&hash=%s",
       "--testnet",
       "--add-exclusive-node=node_1:18080",
       "--no-igd",
@@ -85,6 +83,8 @@ services:
     ports:
       - "28080:28080"
       - "28081:28081"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       - node_1
 

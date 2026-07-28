@@ -48,19 +48,19 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroInteg
         Assert.Equal("1", selectedValue);
 
         // Mine some blocks to verify
-        await MiningFixture.MineToHeightOffset(8);
+        await MiningFixture.MineToHeightOffset(18);
 
         await AssertPartialPaymentState(s.Page, invoiceId);
 
         // Pay the invoice fully
         await PayInvoice(s.Page);
 
-        await MiningFixture.MineToHeightOffset(7);
+        await MiningFixture.MineToHeightOffset(17);
 
         await AssertFullyPaidReceipt(s.Page, "$4.20");
     }
 
-    [Fact(Skip = "Skip until proper fix for additional payment is created")]
+    [Fact]
     public async Task ShouldReuseOriginalAddressForSubsequentPartialPayment()
     {
         await using var s = CreatePlaywrightTester();
@@ -90,20 +90,20 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroInteg
         Assert.Equal("1", selectedValue);
 
         // Mine some blocks to verify
-        await MiningFixture.MineToHeightOffset(8);
+        await MiningFixture.MineToHeightOffset(18);
 
         await AssertPartialPaymentState(s.Page, invoiceId);
 
         // Pay the invoice with original half
         await PayInvoice(s.Page, 1, halfOfTheOriginalPay, originalAddress);
 
-        await MiningFixture.MineToHeightOffset(7);
+        await MiningFixture.MineToHeightOffset(17);
 
         // Pay the invoice fully
         await PayInvoice(s.Page);
 
         // Mine blocks to verify
-        await MiningFixture.MineToHeightOffset(6);
+        await MiningFixture.MineToHeightOffset(16);
 
         await s.Page.Locator("#ReceiptLink").ClickAsync();
 
@@ -163,7 +163,7 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroInteg
         // Enable xmr wallet
         await s.Page.Locator("a.nav-link[href*='monerolike/XMR']").ClickAsync();
         await s.Page.CheckAsync("#Enabled");
-        await s.Page.SelectOptionAsync("#SettlementConfirmationThresholdChoice", "2");
+        await s.Page.SelectOptionAsync("#SettlementConfirmationThresholdChoice", "3");
         await s.Page.ClickAsync("#SaveButton");
 
         // Generate a new invoice
