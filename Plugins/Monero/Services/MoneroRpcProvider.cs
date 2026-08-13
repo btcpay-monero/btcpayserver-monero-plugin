@@ -63,6 +63,17 @@ namespace BTCPayServer.Plugins.Monero.Services
                 "close_wallet", NoRequestModel.Instance);
         }
 
+        public async Task StoreWallet(string cryptoCode)
+        {
+            if (!WalletRpcClients.TryGetValue(cryptoCode.ToUpperInvariant(), out var walletRpcClient))
+            {
+                throw new InvalidOperationException($"Wallet RPC client not found for {cryptoCode}");
+            }
+
+            await walletRpcClient.SendCommandAsync<NoRequestModel, object>(
+                "store", NoRequestModel.Instance);
+        }
+
         public string GetWalletDirectory(string cryptoCode)
         {
             cryptoCode = cryptoCode.ToUpperInvariant();
