@@ -9,7 +9,6 @@ using BTCPayServer.Data;
 using BTCPayServer.Events;
 using BTCPayServer.HostedServices;
 using BTCPayServer.Payments;
-using BTCPayServer.Plugins.Monero.Configuration;
 using BTCPayServer.Plugins.Monero.Payments;
 using BTCPayServer.Plugins.Monero.Utils;
 using BTCPayServer.Services;
@@ -31,7 +30,6 @@ namespace BTCPayServer.Plugins.Monero.Services
         private readonly InvoiceRepository _invoiceRepository;
         private readonly EventAggregator _eventAggregator;
         private readonly MoneroRpcProvider _moneroRpcProvider;
-        private readonly MoneroLikeConfiguration _MoneroLikeConfiguration;
         private readonly BTCPayNetworkProvider _networkProvider;
         private readonly ILogger<MoneroListener> _logger;
         private readonly PaymentMethodHandlerDictionary _handlers;
@@ -41,7 +39,6 @@ namespace BTCPayServer.Plugins.Monero.Services
         public MoneroListener(InvoiceRepository invoiceRepository,
             EventAggregator eventAggregator,
             MoneroRpcProvider moneroRpcProvider,
-            MoneroLikeConfiguration moneroLikeConfiguration,
             BTCPayNetworkProvider networkProvider,
             ILogger<MoneroListener> logger,
             PaymentMethodHandlerDictionary handlers,
@@ -51,7 +48,6 @@ namespace BTCPayServer.Plugins.Monero.Services
             _invoiceRepository = invoiceRepository;
             _eventAggregator = eventAggregator;
             _moneroRpcProvider = moneroRpcProvider;
-            _MoneroLikeConfiguration = moneroLikeConfiguration;
             _networkProvider = networkProvider;
             _logger = logger;
             _handlers = handlers;
@@ -265,8 +261,10 @@ namespace BTCPayServer.Plugins.Monero.Services
                     index.Index,
                     transfer.Transfer.TransactionId,
                     transfer.Transfer.Confirmations,
-                    transfer.Transfer.Height
-                    , transfer.Transfer.UnlockTime, invoice, paymentsToUpdate);
+                    transfer.Transfer.Height,
+                    transfer.Transfer.UnlockTime,
+                    invoice,
+                    paymentsToUpdate);
             }
 
             if (paymentsToUpdate.Any())
@@ -350,12 +348,12 @@ namespace BTCPayServer.Plugins.Monero.Services
             };
 
             // set destination address from transfer
-            var prompts = invoice.GetPaymentPrompts();
-            var prompt = prompts[pmi];
-            if (prompt != null)
+            var prompt = invoice.GetPaymentPrompt(pmi);
+            if (prompt != null && prompt.Destination != address)
             {
                 prompt.Destination = address;
-                invoice.SetPaymentPrompts(prompts);
+                await _invoiceRepository.UpdatePrompt(invoice.Id, prompt, [address]);
+                invoice = await _invoiceRepository.GetInvoice(invoice.Id);
             }
 
             var status = GetStatus(details, invoice.SpeedPolicy) ? PaymentStatus.Settled : PaymentStatus.Processing;
