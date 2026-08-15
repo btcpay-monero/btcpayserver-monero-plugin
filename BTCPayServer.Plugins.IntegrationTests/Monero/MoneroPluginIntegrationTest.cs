@@ -39,13 +39,15 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroInteg
 
         // Select primary Account Index
         await s.Page.Locator("a.nav-link[href*='monerolike/XMR']").ClickAsync();
-        await s.Page.SelectOptionAsync("#AccountIndex", "1");
+        var newAccountIndex = await s.Page.Locator("#AccountIndex option").Last.GetAttributeAsync("value");
+        Assert.NotNull(newAccountIndex);
+        await s.Page.SelectOptionAsync("#AccountIndex", newAccountIndex);
         await s.Page.ClickAsync("#SaveButton");
 
         // Verify selected account index
         await s.Page.Locator("a.nav-link[href*='monerolike/XMR']").ClickAsync();
         var selectedValue = await s.Page.Locator("#AccountIndex").InputValueAsync();
-        Assert.Equal("1", selectedValue);
+        Assert.Equal(newAccountIndex, selectedValue);
 
         // Mine some blocks to verify
         await MiningFixture.MineToHeightOffset(18);
@@ -76,18 +78,20 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroInteg
         await s.Page.Locator("a.nav-link[href*='monerolike/XMR']").ClickAsync();
 
         // Create a new account label
-        await s.Page.FillAsync("#NewAccountLabel", "test-account");
+        await s.Page.FillAsync("#NewAccountLabel", "test-custom-account");
         await s.Page.ClickAsync("button[name='command'][value='add-account']");
 
         // Select primary Account Index
         await s.Page.Locator("a.nav-link[href*='monerolike/XMR']").ClickAsync();
-        await s.Page.SelectOptionAsync("#AccountIndex", "1");
+        var newAccountIndex = await s.Page.Locator("#AccountIndex option").Last.GetAttributeAsync("value");
+        Assert.NotNull(newAccountIndex);
+        await s.Page.SelectOptionAsync("#AccountIndex", newAccountIndex);
         await s.Page.ClickAsync("#SaveButton");
 
         // Verify selected account index
         await s.Page.Locator("a.nav-link[href*='monerolike/XMR']").ClickAsync();
         var selectedValue = await s.Page.Locator("#AccountIndex").InputValueAsync();
-        Assert.Equal("1", selectedValue);
+        Assert.Equal(newAccountIndex, selectedValue);
 
         // Mine some blocks to verify
         await MiningFixture.MineToHeightOffset(18);

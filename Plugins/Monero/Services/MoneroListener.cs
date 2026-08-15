@@ -148,13 +148,19 @@ namespace BTCPayServer.Plugins.Monero.Services
             //create list of subaddresses to account to query the monero wallet
             foreach (var expandedInvoice in expandedInvoices)
             {
-                var addressIndexList =
-                    accountToAddressQuery.GetValueOrDefault(expandedInvoice.PaymentMethodDetails.AccountIndex, []);
+                foreach (var existingPayment in expandedInvoice.ExistingPayments)
+                {
+                    long paymentAccountIndex = existingPayment.PaymentData.SubaccountIndex;
+                    List<long> subaddressIndicesForAccount = accountToAddressQuery.GetValueOrDefault(paymentAccountIndex, []);
+                    subaddressIndicesForAccount.Add(existingPayment.PaymentData.SubaddressIndex);
+                    accountToAddressQuery.AddOrReplace(paymentAccountIndex, subaddressIndicesForAccount);
+                }
 
-                addressIndexList.AddRange(
-                    expandedInvoice.ExistingPayments.Select(tuple => tuple.PaymentData.SubaddressIndex));
-                addressIndexList.Add(expandedInvoice.PaymentMethodDetails.AddressIndex);
-                accountToAddressQuery.AddOrReplace(expandedInvoice.PaymentMethodDetails.AccountIndex, addressIndexList);
+                // add the current address for pending/unpaid balance
+                long currentAccountIndex = expandedInvoice.PaymentMethodDetails.AccountIndex;
+                List<long> subaddressIndicesForCurrentAccount = accountToAddressQuery.GetValueOrDefault(currentAccountIndex, []);
+                subaddressIndicesForCurrentAccount.Add(expandedInvoice.PaymentMethodDetails.AddressIndex);
+                accountToAddressQuery.AddOrReplace(currentAccountIndex, subaddressIndicesForCurrentAccount);
             }
 
             var tasks = accountToAddressQuery.ToDictionary(datas => datas.Key,
