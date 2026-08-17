@@ -25,7 +25,9 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroInteg
         s.Server.PayTester.BindAllInterfaces = true;
         await s.StartAsync();
 
-        var invoiceId = await SetupStoreWithXmrAndCreateInvoice(s, amount: "4.20");
+        var invoiceId = await SetupStoreWithXmrAndCreateInvoice(s, amount: "4.20",
+            "9yEzCbcYdg6MqZ5AkEh8V3YCriyN1tvmtWEHdBEUHkF6D6kN1MMD2Kd2QVWoTY67aNHNYKMUP3xfteLS2QNavJxpJdx6mWj",
+            "1f4668e8c1979b4c7dae13dc149fd95cd7ff2883becffe160c21f9e02c821c08");
 
         // Pay half of the invoice
         await PayInvoice(s.Page, divisor: 2);
@@ -69,7 +71,9 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroInteg
         s.Server.PayTester.BindAllInterfaces = true;
         await s.StartAsync();
 
-        var invoiceId = await SetupStoreWithXmrAndCreateInvoice(s, amount: "4.20");
+        var invoiceId = await SetupStoreWithXmrAndCreateInvoice(s, amount: "4.20",
+            "9vGsWQCtxCWBXQBsmiRvPpgzNw6CL5ANqLip4UH8xXW7FrszpZTeAQdPxDp5H1vPnWa6UxFovxqqGBZQUnZ9i9GFBir3eHV",
+            "31d082a3fab955ec6abe83d0edbfae7a0fbae66358230ee3eb01c155c32e880d");
 
         // Pay half of the invoice
         (decimal halfOfTheOriginalPay, string originalAddress) = await PayInvoice(s.Page, divisor: 2);
@@ -78,7 +82,7 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroInteg
         await s.Page.Locator("a.nav-link[href*='monerolike/XMR']").ClickAsync();
 
         // Create a new account label
-        await s.Page.FillAsync("#NewAccountLabel", "test-custom-account");
+        await s.Page.FillAsync("#NewAccountLabel", "test-account");
         await s.Page.ClickAsync("button[name='command'][value='add-account']");
 
         // Select primary Account Index
@@ -119,7 +123,12 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroInteg
         Assert.Equal(originalAddress, destinations[1]);
     }
 
-    private static async Task<string> SetupStoreWithXmrAndCreateInvoice(PlaywrightTester s, string amount)
+    private static async Task<string> SetupStoreWithXmrAndCreateInvoice(
+        PlaywrightTester s,
+        string amount,
+        string primaryAddress,
+        string privateViewKey
+    )
     {
         if (s.Server.PayTester.MockRates)
         {
@@ -142,11 +151,8 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroInteg
         await s.RegisterNewUser(true);
         await s.CreateNewStore(preferredExchange: "Kraken");
         await s.Page.Locator("a.nav-link[href*='monerolike/XMR']").ClickAsync();
-        await s.Page.Locator("input#PrimaryAddress")
-            .FillAsync(
-                "9yEzCbcYdg6MqZ5AkEh8V3YCriyN1tvmtWEHdBEUHkF6D6kN1MMD2Kd2QVWoTY67aNHNYKMUP3xfteLS2QNavJxpJdx6mWj");
-        await s.Page.Locator("input#PrivateViewKey")
-            .FillAsync("1f4668e8c1979b4c7dae13dc149fd95cd7ff2883becffe160c21f9e02c821c08");
+        await s.Page.Locator("input#PrimaryAddress").FillAsync(primaryAddress);
+        await s.Page.Locator("input#PrivateViewKey").FillAsync(privateViewKey);
         await s.Page.Locator("input#RestoreHeight").FillAsync("0");
         await s.Page.ClickAsync("button[name='command'][value='set-wallet-details']");
         var message = await s.Page
@@ -222,6 +228,7 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroInteg
                 .GetAttributeAsync("data-clipboard");
             amountDueXmr = decimal.Parse(raw!, CultureInfo.InvariantCulture);
         }
+
         long piconero = (long)(amountDueXmr.Value * 1_000_000_000_000m) / divisor;
         await GetCashCowWalletRpc().TransferAsync([
             new TransferDestination { Address = address!, Amount = piconero }
