@@ -12,13 +12,13 @@ namespace BTCPayServer.Plugins.Monero.Services
 {
     public class MoneroLikeSummaryUpdaterHostedService : IHostedService
     {
-        private readonly MoneroRpcProvider _MoneroRpcProvider;
+        private readonly IMoneroRpcProvider _MoneroRpcProvider;
         private readonly MoneroLikeConfiguration _moneroLikeConfiguration;
 
         public Logs Logs { get; }
 
         private CancellationTokenSource _Cts;
-        public MoneroLikeSummaryUpdaterHostedService(MoneroRpcProvider moneroRpcProvider, MoneroLikeConfiguration moneroLikeConfiguration, Logs logs)
+        public MoneroLikeSummaryUpdaterHostedService(IMoneroRpcProvider moneroRpcProvider, MoneroLikeConfiguration moneroLikeConfiguration, Logs logs)
         {
             _MoneroRpcProvider = moneroRpcProvider;
             _moneroLikeConfiguration = moneroLikeConfiguration;

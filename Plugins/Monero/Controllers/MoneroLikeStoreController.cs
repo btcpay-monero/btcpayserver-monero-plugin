@@ -34,13 +34,13 @@ namespace BTCPayServer.Plugins.Monero.Controllers
     {
         private readonly MoneroLikeConfiguration _MoneroLikeConfiguration;
         private readonly StoreRepository _StoreRepository;
-        private readonly MoneroRpcProvider _MoneroRpcProvider;
+        private readonly IMoneroRpcProvider _MoneroRpcProvider;
         private readonly PaymentMethodHandlerDictionary _handlers;
         private readonly ILogger<UIMoneroLikeStoreController> _logger;
         private IStringLocalizer StringLocalizer { get; }
 
         public UIMoneroLikeStoreController(MoneroLikeConfiguration moneroLikeConfiguration,
-            StoreRepository storeRepository, MoneroRpcProvider moneroRpcProvider,
+            StoreRepository storeRepository, IMoneroRpcProvider moneroRpcProvider,
             PaymentMethodHandlerDictionary handlers,
             IStringLocalizer stringLocalizer,
             ILogger<UIMoneroLikeStoreController> logger)

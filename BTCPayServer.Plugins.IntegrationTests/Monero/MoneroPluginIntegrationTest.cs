@@ -264,7 +264,7 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroInteg
         await using var s = CreatePlaywrightTester();
         await s.StartAsync();
 
-        MoneroRpcProvider moneroRpcProvider = s.Server.PayTester.GetService<MoneroRpcProvider>();
+        IMoneroRpcProvider moneroRpcProvider = s.Server.PayTester.GetService<IMoneroRpcProvider>();
         await moneroRpcProvider.WalletRpcClients["XMR"]
             .SendCommandAsync<GenerateFromKeysRequest, GenerateFromKeysResponse>("generate_from_keys",
                 new GenerateFromKeysRequest

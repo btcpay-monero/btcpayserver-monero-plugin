@@ -13,113 +13,124 @@ using Monero.Wallet.Rpc;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace BTCPayServer.Plugins.Monero.Payments
+namespace BTCPayServer.Plugins.Monero.Payments;
+
+public class MoneroLikePaymentMethodHandler(
+    MoneroLikeSpecificBtcPayNetwork network,
+    IMoneroRpcProvider moneroRpcProvider)
+    : IPaymentMethodHandler
 {
-    public class MoneroLikePaymentMethodHandler : IPaymentMethodHandler
+    public JsonSerializer Serializer { get; } = BlobSerializer.CreateSerializer().Serializer;
+    public PaymentMethodId PaymentMethodId { get; } = PaymentTypes.CHAIN.GetPaymentMethodId(network.CryptoCode);
+
+    bool IsReady() => moneroRpcProvider.IsConfigured(network.CryptoCode) &&
+                      moneroRpcProvider.IsAvailable(network.CryptoCode);
+
+    public Task BeforeFetchingRates(PaymentMethodContext context)
     {
-        private readonly MoneroLikeSpecificBtcPayNetwork _network;
-        public MoneroLikeSpecificBtcPayNetwork Network => _network;
-        public JsonSerializer Serializer { get; }
-        private readonly MoneroRpcProvider _moneroRpcProvider;
-
-        public PaymentMethodId PaymentMethodId { get; }
-
-        public MoneroLikePaymentMethodHandler(MoneroLikeSpecificBtcPayNetwork network, MoneroRpcProvider moneroRpcProvider)
+        context.Prompt.Currency = network.CryptoCode;
+        context.Prompt.Divisibility = network.Divisibility;
+        if (context.Prompt.Activated && IsReady())
         {
-            PaymentMethodId = PaymentTypes.CHAIN.GetPaymentMethodId(network.CryptoCode);
-            _network = network;
-            Serializer = BlobSerializer.CreateSerializer().Serializer;
-            _moneroRpcProvider = moneroRpcProvider;
-        }
-        bool IsReady() => _moneroRpcProvider.IsConfigured(_network.CryptoCode) && _moneroRpcProvider.IsAvailable(_network.CryptoCode);
-
-        public Task BeforeFetchingRates(PaymentMethodContext context)
-        {
-            context.Prompt.Currency = _network.CryptoCode;
-            context.Prompt.Divisibility = _network.Divisibility;
-            if (context.Prompt.Activated && IsReady())
+            var supportedPaymentMethod = ParsePaymentMethodConfig(context.PaymentMethodConfig);
+            var walletClient = moneroRpcProvider.WalletRpcClients[network.CryptoCode];
+            var daemonClient = moneroRpcProvider.DaemonRpcClients[network.CryptoCode];
+            try
             {
-                var supportedPaymentMethod = ParsePaymentMethodConfig(context.PaymentMethodConfig);
-                var walletClient = _moneroRpcProvider.WalletRpcClients[_network.CryptoCode];
-                var daemonClient = _moneroRpcProvider.DaemonRpcClients[_network.CryptoCode];
-                try
+                context.State = new Prepare
                 {
-                    context.State = new Prepare()
-                    {
-                        GetFeeRate = daemonClient.SendCommandAsync<GetFeeEstimateRequest, GetFeeEstimateResponse>("get_fee_estimate", new GetFeeEstimateRequest()),
-                        ReserveAddress = s => walletClient.SendCommandAsync<CreateAddressRequest, CreateAddressResponse>("create_address", new CreateAddressRequest() { Label = $"btcpay invoice #{s}", AccountIndex = supportedPaymentMethod.AccountIndex }),
-                        AccountIndex = supportedPaymentMethod.AccountIndex
-                    };
-                }
-                catch (Exception ex)
-                {
-                    context.Logs.Write($"Error in BeforeFetchingRates: {ex.Message}", InvoiceEventData.EventSeverity.Error);
-                }
+                    GetFeeRate =
+                        daemonClient.SendCommandAsync<GetFeeEstimateRequest, GetFeeEstimateResponse>(
+                            "get_fee_estimate", new GetFeeEstimateRequest()),
+                    ReserveAddress = s =>
+                        walletClient.SendCommandAsync<CreateAddressRequest, CreateAddressResponse>(
+                            "create_address",
+                            new CreateAddressRequest
+                            {
+                                Label = $"btcpay invoice #{s}",
+                                AccountIndex = supportedPaymentMethod.AccountIndex
+                            }),
+                    AccountIndex = supportedPaymentMethod.AccountIndex
+                };
             }
-            return Task.CompletedTask;
-        }
-
-        public async Task ConfigurePrompt(PaymentMethodContext context)
-        {
-            if (!_moneroRpcProvider.IsConfigured(_network.CryptoCode))
+            catch (Exception ex)
             {
-                throw new PaymentMethodUnavailableException($"BTCPAY_XMR_WALLET_DAEMON_URI or BTCPAY_XMR_DAEMON_URI isn't configured");
+                context.Logs.Write($"Error in BeforeFetchingRates: {ex.Message}",
+                    InvoiceEventData.EventSeverity.Error);
             }
-
-            if (!_moneroRpcProvider.IsAvailable(_network.CryptoCode) || context.State is not Prepare moneroPrepare)
-            {
-                throw new PaymentMethodUnavailableException($"Node or wallet not available");
-            }
-
-            var invoice = context.InvoiceEntity;
-            var feeRatePerKb = await moneroPrepare.GetFeeRate;
-            var address = await moneroPrepare.ReserveAddress(invoice.Id);
-
-            var feeRatePerByte = feeRatePerKb.Fee / 1024;
-            var details = new MoneroLikeOnChainPaymentMethodDetails()
-            {
-                AccountIndex = moneroPrepare.AccountIndex,
-                AddressIndex = address.Index,
-                InvoiceSettledConfirmationThreshold = ParsePaymentMethodConfig(context.PaymentMethodConfig).InvoiceSettledConfirmationThreshold
-            };
-            context.Prompt.Destination = address.Address;
-            context.Prompt.PaymentMethodFee = MoneroMoney.Convert(feeRatePerByte * 100);
-            context.Prompt.Details = JObject.FromObject(details, Serializer);
-            context.TrackedDestinations.Add(address.Address);
-        }
-        private MoneroPaymentPromptDetails ParsePaymentMethodConfig(JToken config)
-        {
-            return config.ToObject<MoneroPaymentPromptDetails>(Serializer) ?? throw new FormatException($"Invalid {nameof(MoneroLikePaymentMethodHandler)}");
-        }
-        object IPaymentMethodHandler.ParsePaymentMethodConfig(JToken config)
-        {
-            return ParsePaymentMethodConfig(config);
         }
 
-        class Prepare
-        {
-            public Task<GetFeeEstimateResponse> GetFeeRate;
-            public Func<string, Task<CreateAddressResponse>> ReserveAddress;
+        return Task.CompletedTask;
+    }
 
-            public long AccountIndex { get; internal set; }
-        }
-
-        public MoneroLikeOnChainPaymentMethodDetails ParsePaymentPromptDetails(JToken details)
+    public async Task ConfigurePrompt(PaymentMethodContext context)
+    {
+        if (!moneroRpcProvider.IsConfigured(network.CryptoCode))
         {
-            return details.ToObject<MoneroLikeOnChainPaymentMethodDetails>(Serializer);
-        }
-        object IPaymentMethodHandler.ParsePaymentPromptDetails(JToken details)
-        {
-            return ParsePaymentPromptDetails(details);
+            throw new PaymentMethodUnavailableException(
+                "BTCPAY_XMR_WALLET_DAEMON_URI or BTCPAY_XMR_DAEMON_URI isn't configured");
         }
 
-        public MoneroLikePaymentData ParsePaymentDetails(JToken details)
+        if (!moneroRpcProvider.IsAvailable(network.CryptoCode) || context.State is not Prepare moneroPrepare)
         {
-            return details.ToObject<MoneroLikePaymentData>(Serializer) ?? throw new FormatException($"Invalid {nameof(MoneroLikePaymentMethodHandler)}");
+            throw new PaymentMethodUnavailableException("Node or wallet not available");
         }
-        object IPaymentMethodHandler.ParsePaymentDetails(JToken details)
+
+        var invoice = context.InvoiceEntity;
+        var feeRatePerKb = await moneroPrepare.GetFeeRate;
+        var address = await moneroPrepare.ReserveAddress(invoice.Id);
+
+        var feeRatePerByte = feeRatePerKb.Fee / 1024;
+        var details = new MoneroLikeOnChainPaymentMethodDetails
         {
-            return ParsePaymentDetails(details);
-        }
+            AccountIndex = moneroPrepare.AccountIndex,
+            AddressIndex = address.Index,
+            InvoiceSettledConfirmationThreshold = ParsePaymentMethodConfig(context.PaymentMethodConfig)
+                .InvoiceSettledConfirmationThreshold
+        };
+        context.Prompt.Destination = address.Address;
+        context.Prompt.PaymentMethodFee = MoneroMoney.Convert(feeRatePerByte * 100);
+        context.Prompt.Details = JObject.FromObject(details, Serializer);
+        context.TrackedDestinations.Add(address.Address);
+    }
+
+    private MoneroPaymentPromptDetails ParsePaymentMethodConfig(JToken config)
+    {
+        return config.ToObject<MoneroPaymentPromptDetails>(Serializer) ??
+               throw new FormatException($"Invalid {nameof(MoneroLikePaymentMethodHandler)}");
+    }
+
+    object IPaymentMethodHandler.ParsePaymentMethodConfig(JToken config)
+    {
+        return ParsePaymentMethodConfig(config);
+    }
+
+    public class Prepare
+    {
+        public Task<GetFeeEstimateResponse> GetFeeRate;
+        public Func<string, Task<CreateAddressResponse>> ReserveAddress;
+
+        public long AccountIndex { get; init; }
+    }
+
+    public MoneroLikeOnChainPaymentMethodDetails ParsePaymentPromptDetails(JToken details)
+    {
+        return details.ToObject<MoneroLikeOnChainPaymentMethodDetails>(Serializer);
+    }
+
+    object IPaymentMethodHandler.ParsePaymentPromptDetails(JToken details)
+    {
+        return ParsePaymentPromptDetails(details);
+    }
+
+    public MoneroLikePaymentData ParsePaymentDetails(JToken details)
+    {
+        return details.ToObject<MoneroLikePaymentData>(Serializer) ??
+               throw new FormatException($"Invalid {nameof(MoneroLikePaymentMethodHandler)}");
+    }
+
+    object IPaymentMethodHandler.ParsePaymentDetails(JToken details)
+    {
+        return ParsePaymentDetails(details);
     }
 }

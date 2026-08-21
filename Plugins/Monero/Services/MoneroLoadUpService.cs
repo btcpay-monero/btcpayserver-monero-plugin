@@ -15,9 +15,9 @@ public class MoneroLoadUpService : IHostedService
 {
     private const string CryptoCode = "XMR";
     private readonly ILogger<MoneroLoadUpService> _logger;
-    private readonly MoneroRpcProvider _moneroRpcProvider;
+    private readonly IMoneroRpcProvider _moneroRpcProvider;
 
-    public MoneroLoadUpService(ILogger<MoneroLoadUpService> logger, MoneroRpcProvider moneroRpcProvider)
+    public MoneroLoadUpService(ILogger<MoneroLoadUpService> logger, IMoneroRpcProvider moneroRpcProvider)
     {
         _moneroRpcProvider = moneroRpcProvider;
         _logger = logger;

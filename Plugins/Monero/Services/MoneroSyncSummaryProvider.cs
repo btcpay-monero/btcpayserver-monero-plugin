@@ -9,9 +9,9 @@ namespace BTCPayServer.Plugins.Monero.Services
 {
     public class MoneroSyncSummaryProvider : ISyncSummaryProvider
     {
-        private readonly MoneroRpcProvider _moneroRpcProvider;
+        private readonly IMoneroRpcProvider _moneroRpcProvider;
 
-        public MoneroSyncSummaryProvider(MoneroRpcProvider moneroRpcProvider)
+        public MoneroSyncSummaryProvider(IMoneroRpcProvider moneroRpcProvider)
         {
             _moneroRpcProvider = moneroRpcProvider;
         }

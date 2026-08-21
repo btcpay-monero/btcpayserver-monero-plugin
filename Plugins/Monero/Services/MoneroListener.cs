@@ -29,7 +29,7 @@ namespace BTCPayServer.Plugins.Monero.Services
     {
         private readonly InvoiceRepository _invoiceRepository;
         private readonly EventAggregator _eventAggregator;
-        private readonly MoneroRpcProvider _moneroRpcProvider;
+        private readonly IMoneroRpcProvider _moneroRpcProvider;
         private readonly BTCPayNetworkProvider _networkProvider;
         private readonly ILogger<MoneroListener> _logger;
         private readonly PaymentMethodHandlerDictionary _handlers;
@@ -38,7 +38,7 @@ namespace BTCPayServer.Plugins.Monero.Services
 
         public MoneroListener(InvoiceRepository invoiceRepository,
             EventAggregator eventAggregator,
-            MoneroRpcProvider moneroRpcProvider,
+            IMoneroRpcProvider moneroRpcProvider,
             BTCPayNetworkProvider networkProvider,
             ILogger<MoneroListener> logger,
             PaymentMethodHandlerDictionary handlers,
