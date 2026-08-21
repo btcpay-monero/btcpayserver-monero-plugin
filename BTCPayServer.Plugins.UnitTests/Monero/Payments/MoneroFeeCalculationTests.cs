@@ -19,28 +19,49 @@ namespace BTCPayServer.Plugins.UnitTests.Monero.Payments;
 
 public class MoneroFeeCalculationTests
 {
-    // Mainnet get_fee_estimate stub from the RPC example:
-    // { "fee": 20000, "fees": [20000,80000,320000,4000000], "quantization_mask": 10000 }
-    private static GetFeeEstimateResponse MainnetFeeStub() => new()
-    {
-        Fee = 20000,
-        Fees = [20000, 80000, 320000, 4000000],
-        QuantizationMask = 10000
-    };
-
     [Fact]
-    public async Task ConfigurePrompt_ShouldConfigurePromptWithReservedAddress()
+    public async Task ShouldCalculateFeeFromFeeEstimate()
     {
         // Given
-        MoneroLikeSpecificBtcPayNetwork network = new() { CryptoCode = "XMR", Divisibility = 12 };
+        var handler = CreateHandler();
 
-        Mock<IMoneroRpcProvider> rpcProvider = new();
-        rpcProvider.Setup(x => x.IsConfigured("XMR")).Returns(true);
-        rpcProvider.Setup(x => x.IsAvailable("XMR")).Returns(true);
+        // Mainnet get_fee_estimate stub:  { "fee": 20000, "fees": [20000,80000,320000,4000000], "quantization_mask": 10000 }
+        var context = CreateContext(handler,
+            new GetFeeEstimateResponse
+            {
+                Fee = 20000,
+                Fees = [20000, 80000, 320000, 4000000],
+                QuantizationMask = 10000
+            });
 
-        MoneroLikePaymentMethodHandler handler = new(network, rpcProvider.Object);
+        // When
+        await handler.ConfigurePrompt(context);
 
-        var context = new PaymentMethodContext(
+        // Then
+        Assert.Equal(0.000030000000m, context.Prompt.PaymentMethodFee);
+    }
+
+    [Fact]
+    public async Task ShouldRoundFeeUpToNonDivisibleQuantizationMask()
+    {
+        // Given
+        var handler = CreateHandler();
+
+        var context = CreateContext(handler,
+            new GetFeeEstimateResponse { Fee = 7874, Fees = [7874, 31496, 125984, 1574800], QuantizationMask = 10000 });
+
+        // When
+        await handler.ConfigurePrompt(context);
+
+        // Then 7874 * 1500 = 11,811,000 -> rounded up to nearest multiple of 10000 -> 11,820,000
+        Assert.Equal(0.000011820000m, context.Prompt.PaymentMethodFee);
+    }
+
+    private static PaymentMethodContext CreateContext(
+        MoneroLikePaymentMethodHandler handler,
+        GetFeeEstimateResponse feeEstimate)
+    {
+        return new PaymentMethodContext(
             new StoreData(),
             new StoreBlob(),
             JObject.FromObject(new MoneroPaymentPromptDetails
@@ -54,16 +75,22 @@ public class MoneroFeeCalculationTests
         {
             State = new MoneroLikePaymentMethodHandler.Prepare
             {
-                GetFeeRate = Task.FromResult(MainnetFeeStub()),
+                GetFeeRate = Task.FromResult(feeEstimate),
                 ReserveAddress =
                     s => Task.FromResult(new CreateAddressResponse { Address = "fake-xmr-address", Index = 0 }),
                 AccountIndex = 0
             }
         };
+    }
 
-        // When
-        await handler.ConfigurePrompt(context);
-        // Then fees are 1.9E-09 XMR
-        Assert.Equal(0.000000001900m, context.Prompt.PaymentMethodFee);
+    private static MoneroLikePaymentMethodHandler CreateHandler()
+    {
+        var network = new MoneroLikeSpecificBtcPayNetwork { CryptoCode = "XMR", Divisibility = 12 };
+
+        Mock<IMoneroRpcProvider> rpcProvider = new();
+        rpcProvider.Setup(x => x.IsConfigured("XMR")).Returns(true);
+        rpcProvider.Setup(x => x.IsAvailable("XMR")).Returns(true);
+
+        return new MoneroLikePaymentMethodHandler(network, rpcProvider.Object);
     }
 }

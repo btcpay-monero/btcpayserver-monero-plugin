@@ -77,10 +77,9 @@ public class MoneroLikePaymentMethodHandler(
         }
 
         var invoice = context.InvoiceEntity;
-        var feeRatePerKb = await moneroPrepare.GetFeeRate;
+        var feeAtomicRatePerByte = await moneroPrepare.GetFeeRate;
         var address = await moneroPrepare.ReserveAddress(invoice.Id);
 
-        var feeRatePerByte = feeRatePerKb.Fee / 1024;
         var details = new MoneroLikeOnChainPaymentMethodDetails
         {
             AccountIndex = moneroPrepare.AccountIndex,
@@ -89,9 +88,24 @@ public class MoneroLikePaymentMethodHandler(
                 .InvoiceSettledConfirmationThreshold
         };
         context.Prompt.Destination = address.Address;
-        context.Prompt.PaymentMethodFee = MoneroMoney.Convert(feeRatePerByte * 100);
+        // Multiply by 1500 bytes, which is a reasonable approximate weight of a 1-in/2-out Monero transaction.
+        var estimatedFee = feeAtomicRatePerByte.Fee * 1500;
+        // Round up to the nearest multiple of QuantizationMask
+        var quantizedFee = RoundUpToMask(estimatedFee, feeAtomicRatePerByte.QuantizationMask);
+        context.Prompt.PaymentMethodFee = MoneroMoney.Convert(quantizedFee);
         context.Prompt.Details = JObject.FromObject(details, Serializer);
         context.TrackedDestinations.Add(address.Address);
+    }
+
+    private static long RoundUpToMask(long value, long mask)
+    {
+        if (mask <= 1)
+        {
+            return value;
+        }
+
+        var remainder = value % mask;
+        return remainder == 0 ? value : value + (mask - remainder);
     }
 
     private MoneroPaymentPromptDetails ParsePaymentMethodConfig(JToken config)
