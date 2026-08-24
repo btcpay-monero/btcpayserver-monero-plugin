@@ -5,43 +5,42 @@ using BTCPayServer.Abstractions.Contracts;
 using BTCPayServer.Client.Models;
 using BTCPayServer.Payments;
 
-namespace BTCPayServer.Plugins.Monero.Services
+namespace BTCPayServer.Plugins.Monero.Services;
+
+public class MoneroSyncSummaryProvider : ISyncSummaryProvider
 {
-    public class MoneroSyncSummaryProvider : ISyncSummaryProvider
+    private readonly IMoneroRpcProvider _moneroRpcProvider;
+
+    public MoneroSyncSummaryProvider(IMoneroRpcProvider moneroRpcProvider)
     {
-        private readonly IMoneroRpcProvider _moneroRpcProvider;
+        _moneroRpcProvider = moneroRpcProvider;
+    }
 
-        public MoneroSyncSummaryProvider(IMoneroRpcProvider moneroRpcProvider)
-        {
-            _moneroRpcProvider = moneroRpcProvider;
-        }
+    public bool AllAvailable()
+    {
+        return _moneroRpcProvider.Summaries.All(pair => pair.Value.DaemonAvailable);
+    }
 
-        public bool AllAvailable()
+    public string Partial { get; } = "/Views/Monero/MoneroSyncSummary.cshtml";
+    public IEnumerable<ISyncStatus> GetStatuses()
+    {
+        return _moneroRpcProvider.Summaries.Select(pair => new MoneroSyncStatus()
         {
-            return _moneroRpcProvider.Summaries.All(pair => pair.Value.DaemonAvailable);
-        }
+            Summary = pair.Value,
+            PaymentMethodId = PaymentMethodId.Parse(pair.Key).ToString()
+        });
+    }
+}
 
-        public string Partial { get; } = "/Views/Monero/MoneroSyncSummary.cshtml";
-        public IEnumerable<ISyncStatus> GetStatuses()
+public class MoneroSyncStatus : SyncStatus, ISyncStatus
+{
+    public override bool Available
+    {
+        get
         {
-            return _moneroRpcProvider.Summaries.Select(pair => new MoneroSyncStatus()
-            {
-                Summary = pair.Value,
-                PaymentMethodId = PaymentMethodId.Parse(pair.Key).ToString()
-            });
+            return Summary?.WalletAvailable ?? false;
         }
     }
 
-    public class MoneroSyncStatus : SyncStatus, ISyncStatus
-    {
-        public override bool Available
-        {
-            get
-            {
-                return Summary?.WalletAvailable ?? false;
-            }
-        }
-
-        public MoneroRpcProvider.MoneroLikeSummary Summary { get; set; }
-    }
+    public MoneroRpcProvider.MoneroLikeSummary Summary { get; set; }
 }

@@ -24,302 +24,301 @@ using Microsoft.Extensions.Logging;
 
 using Monero.Wallet.Rpc;
 
-namespace BTCPayServer.Plugins.Monero.Controllers
-{
-    [Route("stores/{storeId}/monerolike")]
-    [Authorize(AuthenticationSchemes = AuthenticationSchemes.Cookie)]
-    [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
-    [Authorize(Policy = Policies.CanModifyServerSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
-    public class UIMoneroLikeStoreController : Controller
-    {
-        private readonly MoneroLikeConfiguration _MoneroLikeConfiguration;
-        private readonly StoreRepository _StoreRepository;
-        private readonly IMoneroRpcProvider _MoneroRpcProvider;
-        private readonly PaymentMethodHandlerDictionary _handlers;
-        private readonly ILogger<UIMoneroLikeStoreController> _logger;
-        private IStringLocalizer StringLocalizer { get; }
+namespace BTCPayServer.Plugins.Monero.Controllers;
 
-        public UIMoneroLikeStoreController(MoneroLikeConfiguration moneroLikeConfiguration,
-            StoreRepository storeRepository, IMoneroRpcProvider moneroRpcProvider,
-            PaymentMethodHandlerDictionary handlers,
-            IStringLocalizer stringLocalizer,
-            ILogger<UIMoneroLikeStoreController> logger)
+[Route("stores/{storeId}/monerolike")]
+[Authorize(AuthenticationSchemes = AuthenticationSchemes.Cookie)]
+[Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
+[Authorize(Policy = Policies.CanModifyServerSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
+public class UIMoneroLikeStoreController : Controller
+{
+    private readonly MoneroLikeConfiguration _MoneroLikeConfiguration;
+    private readonly StoreRepository _StoreRepository;
+    private readonly IMoneroRpcProvider _MoneroRpcProvider;
+    private readonly PaymentMethodHandlerDictionary _handlers;
+    private readonly ILogger<UIMoneroLikeStoreController> _logger;
+    private IStringLocalizer StringLocalizer { get; }
+
+    public UIMoneroLikeStoreController(MoneroLikeConfiguration moneroLikeConfiguration,
+        StoreRepository storeRepository, IMoneroRpcProvider moneroRpcProvider,
+        PaymentMethodHandlerDictionary handlers,
+        IStringLocalizer stringLocalizer,
+        ILogger<UIMoneroLikeStoreController> logger)
+    {
+        _MoneroLikeConfiguration = moneroLikeConfiguration;
+        _StoreRepository = storeRepository;
+        _MoneroRpcProvider = moneroRpcProvider;
+        _handlers = handlers;
+        StringLocalizer = stringLocalizer;
+        _logger = logger;
+    }
+
+    public StoreData StoreData => HttpContext.GetStoreData();
+
+    [NonAction]
+    public async Task<MoneroLikePaymentMethodListViewModel> GetVM(StoreData storeData)
+    {
+        var excludeFilters = storeData.GetStoreBlob().GetExcludedPaymentMethods();
+
+        var accountsList = _MoneroLikeConfiguration.MoneroLikeConfigurationItems.ToDictionary(pair => pair.Key,
+            pair => GetAccounts(pair.Key));
+
+        await Task.WhenAll(accountsList.Values);
+        return new MoneroLikePaymentMethodListViewModel()
         {
-            _MoneroLikeConfiguration = moneroLikeConfiguration;
-            _StoreRepository = storeRepository;
-            _MoneroRpcProvider = moneroRpcProvider;
-            _handlers = handlers;
-            StringLocalizer = stringLocalizer;
-            _logger = logger;
+            Items = _MoneroLikeConfiguration.MoneroLikeConfigurationItems.Select(pair =>
+                GetMoneroLikePaymentMethodViewModel(storeData, pair.Key, excludeFilters,
+                    accountsList[pair.Key].Result))
+        };
+    }
+
+    private async Task<GetAccountsResponse> GetAccounts(string cryptoCode)
+    {
+        try
+        {
+            if (_MoneroRpcProvider.Summaries.TryGetValue(cryptoCode, out var summary) && summary.WalletAvailable)
+            {
+                return await _MoneroRpcProvider.WalletRpcClients[cryptoCode].SendCommandAsync<GetAccountsRequest, GetAccountsResponse>("get_accounts", new GetAccountsRequest());
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get accounts for {CryptoCode}", cryptoCode);
         }
 
-        public StoreData StoreData => HttpContext.GetStoreData();
+        return null;
+    }
 
-        [NonAction]
-        public async Task<MoneroLikePaymentMethodListViewModel> GetVM(StoreData storeData)
+    private MoneroLikePaymentMethodViewModel GetMoneroLikePaymentMethodViewModel(
+        StoreData storeData, string cryptoCode,
+        IPaymentFilter excludeFilters, GetAccountsResponse accountsResponse)
+    {
+        var monero = storeData.GetPaymentMethodConfigs(_handlers)
+            .Where(s => s.Value is MoneroPaymentPromptDetails)
+            .Select(s => (PaymentMethodId: s.Key, Details: (MoneroPaymentPromptDetails)s.Value));
+        var pmi = PaymentTypes.CHAIN.GetPaymentMethodId(cryptoCode);
+        var settings = monero.Where(method => method.PaymentMethodId == pmi).Select(m => m.Details).SingleOrDefault();
+        _MoneroRpcProvider.Summaries.TryGetValue(cryptoCode, out var summary);
+        _MoneroLikeConfiguration.MoneroLikeConfigurationItems.TryGetValue(cryptoCode,
+            out var configurationItem);
+        var accounts = accountsResponse?.Accounts.Select(account =>
+            new SelectListItem(
+                $"{account.AccountIndex} - {(string.IsNullOrEmpty(account.Label) ? "No label" : account.Label)}",
+                account.AccountIndex.ToString()));
+
+        var settlementThresholdChoice = MoneroLikeSettlementThresholdChoice.StoreSpeedPolicy;
+        if (settings != null && settings.InvoiceSettledConfirmationThreshold is { } confirmations)
         {
-            var excludeFilters = storeData.GetStoreBlob().GetExcludedPaymentMethods();
-
-            var accountsList = _MoneroLikeConfiguration.MoneroLikeConfigurationItems.ToDictionary(pair => pair.Key,
-                pair => GetAccounts(pair.Key));
-
-            await Task.WhenAll(accountsList.Values);
-            return new MoneroLikePaymentMethodListViewModel()
+            settlementThresholdChoice = confirmations switch
             {
-                Items = _MoneroLikeConfiguration.MoneroLikeConfigurationItems.Select(pair =>
-                    GetMoneroLikePaymentMethodViewModel(storeData, pair.Key, excludeFilters,
-                        accountsList[pair.Key].Result))
+                0 => MoneroLikeSettlementThresholdChoice.ZeroConfirmation,
+                1 => MoneroLikeSettlementThresholdChoice.AtLeastOne,
+                10 => MoneroLikeSettlementThresholdChoice.AtLeastTen,
+                _ => MoneroLikeSettlementThresholdChoice.Custom
             };
         }
 
-        private async Task<GetAccountsResponse> GetAccounts(string cryptoCode)
+        return new MoneroLikePaymentMethodViewModel()
+        {
+            Enabled =
+                settings != null &&
+                !excludeFilters.Match(PaymentTypes.CHAIN.GetPaymentMethodId(cryptoCode)),
+            Summary = summary,
+            CryptoCode = cryptoCode,
+            AccountIndex = settings?.AccountIndex ?? accountsResponse?.Accounts?.FirstOrDefault()?.AccountIndex ?? 0,
+            Accounts = accounts == null ? null : new SelectList(accounts, nameof(SelectListItem.Value),
+                nameof(SelectListItem.Text)),
+            SettlementConfirmationThresholdChoice = settlementThresholdChoice,
+            CustomSettlementConfirmationThreshold =
+                settings != null &&
+                settlementThresholdChoice is MoneroLikeSettlementThresholdChoice.Custom
+                    ? settings.InvoiceSettledConfirmationThreshold
+                    : null
+        };
+    }
+
+    [HttpGet("{cryptoCode}")]
+    public async Task<IActionResult> GetStoreMoneroLikePaymentMethod(string cryptoCode)
+    {
+        cryptoCode = cryptoCode.ToUpperInvariant();
+        if (!_MoneroLikeConfiguration.MoneroLikeConfigurationItems.ContainsKey(cryptoCode))
+        {
+            return NotFound();
+        }
+
+        var vm = GetMoneroLikePaymentMethodViewModel(StoreData, cryptoCode,
+            StoreData.GetStoreBlob().GetExcludedPaymentMethods(), await GetAccounts(cryptoCode));
+        return View("/Views/Monero/GetStoreMoneroLikePaymentMethod.cshtml", vm);
+    }
+
+    [HttpPost("{cryptoCode}")]
+    public async Task<IActionResult> GetStoreMoneroLikePaymentMethod(MoneroLikePaymentMethodViewModel viewModel, string command, string cryptoCode)
+    {
+        cryptoCode = cryptoCode.ToUpperInvariant();
+        if (!_MoneroLikeConfiguration.MoneroLikeConfigurationItems.TryGetValue(cryptoCode,
+            out var configurationItem))
+        {
+            return NotFound();
+        }
+
+        if (command == "add-account")
         {
             try
             {
-                if (_MoneroRpcProvider.Summaries.TryGetValue(cryptoCode, out var summary) && summary.WalletAvailable)
+                var newAccount = await _MoneroRpcProvider.WalletRpcClients[cryptoCode].SendCommandAsync<CreateAccountRequest, CreateAccountResponse>("create_account", new CreateAccountRequest()
                 {
-                    return await _MoneroRpcProvider.WalletRpcClients[cryptoCode].SendCommandAsync<GetAccountsRequest, GetAccountsResponse>("get_accounts", new GetAccountsRequest());
+                    Label = viewModel.NewAccountLabel
+                });
+                viewModel.AccountIndex = newAccount.AccountIndex;
+            }
+            catch (Exception)
+            {
+                ModelState.AddModelError(nameof(viewModel.AccountIndex), StringLocalizer["Could not create a new account."]);
+            }
+
+        }
+        else if (command == "set-wallet-details")
+        {
+            var valid = true;
+            if (viewModel.PrimaryAddress == null)
+            {
+                ModelState.AddModelError(nameof(viewModel.PrimaryAddress), StringLocalizer["Please set your primary public address"]);
+                valid = false;
+            }
+            if (viewModel.PrivateViewKey == null)
+            {
+                ModelState.AddModelError(nameof(viewModel.PrivateViewKey), StringLocalizer["Please set your private view key"]);
+                valid = false;
+            }
+            if (configurationItem.WalletDirectory == null)
+            {
+                ModelState.AddModelError(nameof(viewModel.PrimaryAddress), StringLocalizer["This installation doesn't support wallet creation (BTCPAY_XMR_WALLET_DAEMON_WALLETDIR is not set)"]);
+                valid = false;
+            }
+            if (valid)
+            {
+                if (_MoneroRpcProvider.Summaries.TryGetValue(cryptoCode, out var summary))
+                {
+                    if (summary.WalletAvailable)
+                    {
+                        TempData.SetStatusMessageModel(new StatusMessageModel
+                        {
+                            Severity = StatusMessageModel.StatusSeverity.Error,
+                            Message = StringLocalizer["There is already an active wallet configured for {0}. Replacing it would break any existing invoices!", cryptoCode].Value
+                        });
+                        return RedirectToAction(nameof(GetStoreMoneroLikePaymentMethod),
+                            new { cryptoCode });
+                    }
                 }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to get accounts for {CryptoCode}", cryptoCode);
-            }
-
-            return null;
-        }
-
-        private MoneroLikePaymentMethodViewModel GetMoneroLikePaymentMethodViewModel(
-            StoreData storeData, string cryptoCode,
-            IPaymentFilter excludeFilters, GetAccountsResponse accountsResponse)
-        {
-            var monero = storeData.GetPaymentMethodConfigs(_handlers)
-                .Where(s => s.Value is MoneroPaymentPromptDetails)
-                .Select(s => (PaymentMethodId: s.Key, Details: (MoneroPaymentPromptDetails)s.Value));
-            var pmi = PaymentTypes.CHAIN.GetPaymentMethodId(cryptoCode);
-            var settings = monero.Where(method => method.PaymentMethodId == pmi).Select(m => m.Details).SingleOrDefault();
-            _MoneroRpcProvider.Summaries.TryGetValue(cryptoCode, out var summary);
-            _MoneroLikeConfiguration.MoneroLikeConfigurationItems.TryGetValue(cryptoCode,
-                out var configurationItem);
-            var accounts = accountsResponse?.Accounts.Select(account =>
-                new SelectListItem(
-                    $"{account.AccountIndex} - {(string.IsNullOrEmpty(account.Label) ? "No label" : account.Label)}",
-                    account.AccountIndex.ToString()));
-
-            var settlementThresholdChoice = MoneroLikeSettlementThresholdChoice.StoreSpeedPolicy;
-            if (settings != null && settings.InvoiceSettledConfirmationThreshold is { } confirmations)
-            {
-                settlementThresholdChoice = confirmations switch
+                try
                 {
-                    0 => MoneroLikeSettlementThresholdChoice.ZeroConfirmation,
-                    1 => MoneroLikeSettlementThresholdChoice.AtLeastOne,
-                    10 => MoneroLikeSettlementThresholdChoice.AtLeastTen,
-                    _ => MoneroLikeSettlementThresholdChoice.Custom
-                };
-            }
+                    await _MoneroRpcProvider.WalletRpcClients[cryptoCode].SendCommandAsync<GenerateFromKeysRequest, GenerateFromKeysResponse>("generate_from_keys", new GenerateFromKeysRequest
+                    {
+                        PrimaryAddress = viewModel.PrimaryAddress,
+                        PrivateViewKey = viewModel.PrivateViewKey,
+                        WalletFileName = "wallet",
+                        RestoreHeight = viewModel.RestoreHeight
+                    });
+                }
+                catch (Exception ex)
+                {
+                    ModelState.AddModelError(nameof(viewModel.AccountIndex), StringLocalizer["Could not generate view wallet from keys: {0}", ex.Message]);
+                    return View("/Views/Monero/GetStoreMoneroLikePaymentMethod.cshtml", viewModel);
+                }
 
-            return new MoneroLikePaymentMethodViewModel()
-            {
-                Enabled =
-                    settings != null &&
-                    !excludeFilters.Match(PaymentTypes.CHAIN.GetPaymentMethodId(cryptoCode)),
-                Summary = summary,
-                CryptoCode = cryptoCode,
-                AccountIndex = settings?.AccountIndex ?? accountsResponse?.Accounts?.FirstOrDefault()?.AccountIndex ?? 0,
-                Accounts = accounts == null ? null : new SelectList(accounts, nameof(SelectListItem.Value),
-                    nameof(SelectListItem.Text)),
-                SettlementConfirmationThresholdChoice = settlementThresholdChoice,
-                CustomSettlementConfirmationThreshold =
-                    settings != null &&
-                    settlementThresholdChoice is MoneroLikeSettlementThresholdChoice.Custom
-                        ? settings.InvoiceSettledConfirmationThreshold
-                        : null
-            };
+                TempData.SetStatusMessageModel(new StatusMessageModel
+                {
+                    Severity = StatusMessageModel.StatusSeverity.Info,
+                    Message = StringLocalizer["View-only wallet created. The wallet will soon become available."].Value
+                });
+                return RedirectToAction(nameof(GetStoreMoneroLikePaymentMethod), new { cryptoCode });
+            }
         }
 
-        [HttpGet("{cryptoCode}")]
-        public async Task<IActionResult> GetStoreMoneroLikePaymentMethod(string cryptoCode)
+        if (!ModelState.IsValid)
         {
-            cryptoCode = cryptoCode.ToUpperInvariant();
-            if (!_MoneroLikeConfiguration.MoneroLikeConfigurationItems.ContainsKey(cryptoCode))
-            {
-                return NotFound();
-            }
 
             var vm = GetMoneroLikePaymentMethodViewModel(StoreData, cryptoCode,
                 StoreData.GetStoreBlob().GetExcludedPaymentMethods(), await GetAccounts(cryptoCode));
+
+            vm.Enabled = viewModel.Enabled;
+            vm.NewAccountLabel = viewModel.NewAccountLabel;
+            vm.AccountIndex = viewModel.AccountIndex;
+            vm.SettlementConfirmationThresholdChoice = viewModel.SettlementConfirmationThresholdChoice;
+            vm.CustomSettlementConfirmationThreshold = viewModel.CustomSettlementConfirmationThreshold;
             return View("/Views/Monero/GetStoreMoneroLikePaymentMethod.cshtml", vm);
         }
 
-        [HttpPost("{cryptoCode}")]
-        public async Task<IActionResult> GetStoreMoneroLikePaymentMethod(MoneroLikePaymentMethodViewModel viewModel, string command, string cryptoCode)
+        var storeData = StoreData;
+        var blob = storeData.GetStoreBlob();
+        storeData.SetPaymentMethodConfig(_handlers[PaymentTypes.CHAIN.GetPaymentMethodId(cryptoCode)], new MoneroPaymentPromptDetails()
         {
-            cryptoCode = cryptoCode.ToUpperInvariant();
-            if (!_MoneroLikeConfiguration.MoneroLikeConfigurationItems.TryGetValue(cryptoCode,
-                out var configurationItem))
+            AccountIndex = viewModel.AccountIndex,
+            InvoiceSettledConfirmationThreshold = viewModel.SettlementConfirmationThresholdChoice switch
             {
-                return NotFound();
+                MoneroLikeSettlementThresholdChoice.ZeroConfirmation => 0,
+                MoneroLikeSettlementThresholdChoice.AtLeastOne => 1,
+                MoneroLikeSettlementThresholdChoice.AtLeastTen => 10,
+                MoneroLikeSettlementThresholdChoice.Custom when viewModel.CustomSettlementConfirmationThreshold is { } custom => custom,
+                _ => null
             }
+        });
 
-            if (command == "add-account")
-            {
-                try
-                {
-                    var newAccount = await _MoneroRpcProvider.WalletRpcClients[cryptoCode].SendCommandAsync<CreateAccountRequest, CreateAccountResponse>("create_account", new CreateAccountRequest()
-                    {
-                        Label = viewModel.NewAccountLabel
-                    });
-                    viewModel.AccountIndex = newAccount.AccountIndex;
-                }
-                catch (Exception)
-                {
-                    ModelState.AddModelError(nameof(viewModel.AccountIndex), StringLocalizer["Could not create a new account."]);
-                }
+        blob.SetExcluded(PaymentTypes.CHAIN.GetPaymentMethodId(viewModel.CryptoCode), !viewModel.Enabled);
+        storeData.SetStoreBlob(blob);
+        await _StoreRepository.UpdateStore(storeData);
+        return RedirectToAction("GetStoreMoneroLikePaymentMethod", new { cryptoCode });
+    }
 
-            }
-            else if (command == "set-wallet-details")
-            {
-                var valid = true;
-                if (viewModel.PrimaryAddress == null)
-                {
-                    ModelState.AddModelError(nameof(viewModel.PrimaryAddress), StringLocalizer["Please set your primary public address"]);
-                    valid = false;
-                }
-                if (viewModel.PrivateViewKey == null)
-                {
-                    ModelState.AddModelError(nameof(viewModel.PrivateViewKey), StringLocalizer["Please set your private view key"]);
-                    valid = false;
-                }
-                if (configurationItem.WalletDirectory == null)
-                {
-                    ModelState.AddModelError(nameof(viewModel.PrimaryAddress), StringLocalizer["This installation doesn't support wallet creation (BTCPAY_XMR_WALLET_DAEMON_WALLETDIR is not set)"]);
-                    valid = false;
-                }
-                if (valid)
-                {
-                    if (_MoneroRpcProvider.Summaries.TryGetValue(cryptoCode, out var summary))
-                    {
-                        if (summary.WalletAvailable)
-                        {
-                            TempData.SetStatusMessageModel(new StatusMessageModel
-                            {
-                                Severity = StatusMessageModel.StatusSeverity.Error,
-                                Message = StringLocalizer["There is already an active wallet configured for {0}. Replacing it would break any existing invoices!", cryptoCode].Value
-                            });
-                            return RedirectToAction(nameof(GetStoreMoneroLikePaymentMethod),
-                                new { cryptoCode });
-                        }
-                    }
-                    try
-                    {
-                        await _MoneroRpcProvider.WalletRpcClients[cryptoCode].SendCommandAsync<GenerateFromKeysRequest, GenerateFromKeysResponse>("generate_from_keys", new GenerateFromKeysRequest
-                        {
-                            PrimaryAddress = viewModel.PrimaryAddress,
-                            PrivateViewKey = viewModel.PrivateViewKey,
-                            WalletFileName = "wallet",
-                            RestoreHeight = viewModel.RestoreHeight
-                        });
-                    }
-                    catch (Exception ex)
-                    {
-                        ModelState.AddModelError(nameof(viewModel.AccountIndex), StringLocalizer["Could not generate view wallet from keys: {0}", ex.Message]);
-                        return View("/Views/Monero/GetStoreMoneroLikePaymentMethod.cshtml", viewModel);
-                    }
+    public class MoneroLikePaymentMethodListViewModel
+    {
+        public IEnumerable<MoneroLikePaymentMethodViewModel> Items { get; set; }
+    }
 
-                    TempData.SetStatusMessageModel(new StatusMessageModel
-                    {
-                        Severity = StatusMessageModel.StatusSeverity.Info,
-                        Message = StringLocalizer["View-only wallet created. The wallet will soon become available."].Value
-                    });
-                    return RedirectToAction(nameof(GetStoreMoneroLikePaymentMethod), new { cryptoCode });
-                }
-            }
+    public class MoneroLikePaymentMethodViewModel : IValidatableObject
+    {
+        public MoneroRpcProvider.MoneroLikeSummary Summary { get; set; }
+        public string CryptoCode { get; set; }
+        public string NewAccountLabel { get; set; }
+        public long AccountIndex { get; set; }
+        public bool Enabled { get; set; }
 
-            if (!ModelState.IsValid)
-            {
+        public IEnumerable<SelectListItem> Accounts { get; set; }
+        public bool WalletFileFound { get; set; }
+        [Display(Name = "Primary Public Address")]
+        public string PrimaryAddress { get; set; }
+        [Display(Name = "Private View Key")]
+        public string PrivateViewKey { get; set; }
+        [Display(Name = "Restore Height")]
+        public uint RestoreHeight { get; set; }
+        [Display(Name = "Consider the invoice settled when the payment transaction …")]
+        public MoneroLikeSettlementThresholdChoice SettlementConfirmationThresholdChoice { get; set; }
+        [Display(Name = "Required Confirmations"), Range(0, 100)]
+        public int? CustomSettlementConfirmationThreshold { get; set; }
 
-                var vm = GetMoneroLikePaymentMethodViewModel(StoreData, cryptoCode,
-                    StoreData.GetStoreBlob().GetExcludedPaymentMethods(), await GetAccounts(cryptoCode));
-
-                vm.Enabled = viewModel.Enabled;
-                vm.NewAccountLabel = viewModel.NewAccountLabel;
-                vm.AccountIndex = viewModel.AccountIndex;
-                vm.SettlementConfirmationThresholdChoice = viewModel.SettlementConfirmationThresholdChoice;
-                vm.CustomSettlementConfirmationThreshold = viewModel.CustomSettlementConfirmationThreshold;
-                return View("/Views/Monero/GetStoreMoneroLikePaymentMethod.cshtml", vm);
-            }
-
-            var storeData = StoreData;
-            var blob = storeData.GetStoreBlob();
-            storeData.SetPaymentMethodConfig(_handlers[PaymentTypes.CHAIN.GetPaymentMethodId(cryptoCode)], new MoneroPaymentPromptDetails()
-            {
-                AccountIndex = viewModel.AccountIndex,
-                InvoiceSettledConfirmationThreshold = viewModel.SettlementConfirmationThresholdChoice switch
-                {
-                    MoneroLikeSettlementThresholdChoice.ZeroConfirmation => 0,
-                    MoneroLikeSettlementThresholdChoice.AtLeastOne => 1,
-                    MoneroLikeSettlementThresholdChoice.AtLeastTen => 10,
-                    MoneroLikeSettlementThresholdChoice.Custom when viewModel.CustomSettlementConfirmationThreshold is { } custom => custom,
-                    _ => null
-                }
-            });
-
-            blob.SetExcluded(PaymentTypes.CHAIN.GetPaymentMethodId(viewModel.CryptoCode), !viewModel.Enabled);
-            storeData.SetStoreBlob(blob);
-            await _StoreRepository.UpdateStore(storeData);
-            return RedirectToAction("GetStoreMoneroLikePaymentMethod", new { cryptoCode });
-        }
-
-        public class MoneroLikePaymentMethodListViewModel
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
         {
-            public IEnumerable<MoneroLikePaymentMethodViewModel> Items { get; set; }
-        }
-
-        public class MoneroLikePaymentMethodViewModel : IValidatableObject
-        {
-            public MoneroRpcProvider.MoneroLikeSummary Summary { get; set; }
-            public string CryptoCode { get; set; }
-            public string NewAccountLabel { get; set; }
-            public long AccountIndex { get; set; }
-            public bool Enabled { get; set; }
-
-            public IEnumerable<SelectListItem> Accounts { get; set; }
-            public bool WalletFileFound { get; set; }
-            [Display(Name = "Primary Public Address")]
-            public string PrimaryAddress { get; set; }
-            [Display(Name = "Private View Key")]
-            public string PrivateViewKey { get; set; }
-            [Display(Name = "Restore Height")]
-            public uint RestoreHeight { get; set; }
-            [Display(Name = "Consider the invoice settled when the payment transaction …")]
-            public MoneroLikeSettlementThresholdChoice SettlementConfirmationThresholdChoice { get; set; }
-            [Display(Name = "Required Confirmations"), Range(0, 100)]
-            public int? CustomSettlementConfirmationThreshold { get; set; }
-
-            public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+            if (SettlementConfirmationThresholdChoice is MoneroLikeSettlementThresholdChoice.Custom
+                && CustomSettlementConfirmationThreshold is null)
             {
-                if (SettlementConfirmationThresholdChoice is MoneroLikeSettlementThresholdChoice.Custom
-                    && CustomSettlementConfirmationThreshold is null)
-                {
-                    yield return new ValidationResult(
-                        "You must specify the number of required confirmations when using a custom threshold.",
-                        new[] { nameof(CustomSettlementConfirmationThreshold) });
-                }
+                yield return new ValidationResult(
+                    "You must specify the number of required confirmations when using a custom threshold.",
+                    new[] { nameof(CustomSettlementConfirmationThreshold) });
             }
         }
+    }
 
-        public enum MoneroLikeSettlementThresholdChoice
-        {
-            [Display(Name = "Store Speed Policy", Description = "Use the store's speed policy")]
-            StoreSpeedPolicy,
-            [Display(Name = "Zero Confirmation", Description = "Is unconfirmed")]
-            ZeroConfirmation,
-            [Display(Name = "At Least One", Description = "Has at least 1 confirmation")]
-            AtLeastOne,
-            [Display(Name = "At Least Ten", Description = "Has at least 10 confirmations")]
-            AtLeastTen,
-            [Display(Name = "Custom", Description = "Custom")]
-            Custom
-        }
+    public enum MoneroLikeSettlementThresholdChoice
+    {
+        [Display(Name = "Store Speed Policy", Description = "Use the store's speed policy")]
+        StoreSpeedPolicy,
+        [Display(Name = "Zero Confirmation", Description = "Is unconfirmed")]
+        ZeroConfirmation,
+        [Display(Name = "At Least One", Description = "Has at least 1 confirmation")]
+        AtLeastOne,
+        [Display(Name = "At Least Ten", Description = "Has at least 10 confirmations")]
+        AtLeastTen,
+        [Display(Name = "Custom", Description = "Custom")]
+        Custom
     }
 }

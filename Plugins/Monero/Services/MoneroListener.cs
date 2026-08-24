@@ -23,206 +23,260 @@ using NBitcoin;
 
 using Newtonsoft.Json.Linq;
 
-namespace BTCPayServer.Plugins.Monero.Services
+namespace BTCPayServer.Plugins.Monero.Services;
+
+public class MoneroListener : EventHostedServiceBase
 {
-    public class MoneroListener : EventHostedServiceBase
+    private readonly InvoiceRepository _invoiceRepository;
+    private readonly EventAggregator _eventAggregator;
+    private readonly IMoneroRpcProvider _moneroRpcProvider;
+    private readonly BTCPayNetworkProvider _networkProvider;
+    private readonly ILogger<MoneroListener> _logger;
+    private readonly PaymentMethodHandlerDictionary _handlers;
+    private readonly InvoiceActivator _invoiceActivator;
+    private readonly PaymentService _paymentService;
+
+    public MoneroListener(InvoiceRepository invoiceRepository,
+        EventAggregator eventAggregator,
+        IMoneroRpcProvider moneroRpcProvider,
+        BTCPayNetworkProvider networkProvider,
+        ILogger<MoneroListener> logger,
+        PaymentMethodHandlerDictionary handlers,
+        InvoiceActivator invoiceActivator,
+        PaymentService paymentService) : base(eventAggregator, logger)
     {
-        private readonly InvoiceRepository _invoiceRepository;
-        private readonly EventAggregator _eventAggregator;
-        private readonly IMoneroRpcProvider _moneroRpcProvider;
-        private readonly BTCPayNetworkProvider _networkProvider;
-        private readonly ILogger<MoneroListener> _logger;
-        private readonly PaymentMethodHandlerDictionary _handlers;
-        private readonly InvoiceActivator _invoiceActivator;
-        private readonly PaymentService _paymentService;
+        _invoiceRepository = invoiceRepository;
+        _eventAggregator = eventAggregator;
+        _moneroRpcProvider = moneroRpcProvider;
+        _networkProvider = networkProvider;
+        _logger = logger;
+        _handlers = handlers;
+        _invoiceActivator = invoiceActivator;
+        _paymentService = paymentService;
+    }
 
-        public MoneroListener(InvoiceRepository invoiceRepository,
-            EventAggregator eventAggregator,
-            IMoneroRpcProvider moneroRpcProvider,
-            BTCPayNetworkProvider networkProvider,
-            ILogger<MoneroListener> logger,
-            PaymentMethodHandlerDictionary handlers,
-            InvoiceActivator invoiceActivator,
-            PaymentService paymentService) : base(eventAggregator, logger)
-        {
-            _invoiceRepository = invoiceRepository;
-            _eventAggregator = eventAggregator;
-            _moneroRpcProvider = moneroRpcProvider;
-            _networkProvider = networkProvider;
-            _logger = logger;
-            _handlers = handlers;
-            _invoiceActivator = invoiceActivator;
-            _paymentService = paymentService;
-        }
+    protected override void SubscribeToEvents()
+    {
+        base.SubscribeToEvents();
+        Subscribe<MoneroEvent>();
+        Subscribe<MoneroRpcProvider.MoneroDaemonStateChange>();
+    }
 
-        protected override void SubscribeToEvents()
+    protected override async Task ProcessEvent(object evt, CancellationToken cancellationToken)
+    {
+        if (evt is MoneroRpcProvider.MoneroDaemonStateChange stateChange)
         {
-            base.SubscribeToEvents();
-            Subscribe<MoneroEvent>();
-            Subscribe<MoneroRpcProvider.MoneroDaemonStateChange>();
-        }
-
-        protected override async Task ProcessEvent(object evt, CancellationToken cancellationToken)
-        {
-            if (evt is MoneroRpcProvider.MoneroDaemonStateChange stateChange)
+            if (_moneroRpcProvider.IsAvailable(stateChange.CryptoCode))
             {
-                if (_moneroRpcProvider.IsAvailable(stateChange.CryptoCode))
-                {
-                    _logger.LogInformation($"{stateChange.CryptoCode} just became available");
-                    _ = UpdateAnyPendingMoneroLikePayment(stateChange.CryptoCode);
-                }
-                else
-                {
-                    _logger.LogInformation($"{stateChange.CryptoCode} just became unavailable");
-                }
+                _logger.LogInformation($"{stateChange.CryptoCode} just became available");
+                _ = UpdateAnyPendingMoneroLikePayment(stateChange.CryptoCode);
             }
-            else if (evt is MoneroEvent moneroEvent)
+            else
             {
-                if (!_moneroRpcProvider.IsAvailable(moneroEvent.CryptoCode))
-                {
-                    return;
-                }
-
-                if (!string.IsNullOrEmpty(moneroEvent.BlockHash))
-                {
-                    await OnNewBlock(moneroEvent.CryptoCode);
-                }
-
-                if (!string.IsNullOrEmpty(moneroEvent.TransactionHash))
-                {
-                    await OnTransactionUpdated(moneroEvent.CryptoCode, moneroEvent.TransactionHash);
-                }
+                _logger.LogInformation($"{stateChange.CryptoCode} just became unavailable");
             }
         }
-
-        private async Task ReceivedPayment(InvoiceEntity invoice, PaymentEntity payment)
+        else if (evt is MoneroEvent moneroEvent)
         {
-            _logger.LogInformation(
-                $"Invoice {invoice.Id} received payment {payment.Value} {payment.Currency} {payment.Id}");
-
-            var prompt = invoice.GetPaymentPrompt(payment.PaymentMethodId);
-
-            if (prompt != null &&
-                prompt.Activated &&
-                prompt.Destination == payment.Destination &&
-                prompt.Calculate().Due > 0.0m)
-            {
-                await _invoiceActivator.ActivateInvoicePaymentMethod(invoice.Id, payment.PaymentMethodId, true);
-                invoice = await _invoiceRepository.GetInvoice(invoice.Id);
-            }
-
-            _eventAggregator.Publish(
-                new InvoiceEvent(invoice, InvoiceEvent.ReceivedPayment) { Payment = payment });
-        }
-
-        private async Task UpdatePaymentStates(string cryptoCode, InvoiceEntity[] invoices)
-        {
-            if (!invoices.Any())
+            if (!_moneroRpcProvider.IsAvailable(moneroEvent.CryptoCode))
             {
                 return;
             }
 
-            var moneroWalletRpcClient = _moneroRpcProvider.WalletRpcClients[cryptoCode];
-            var network = _networkProvider.GetNetwork(cryptoCode);
-            var paymentId = PaymentTypes.CHAIN.GetPaymentMethodId(network.CryptoCode);
-            var handler = (MoneroLikePaymentMethodHandler)_handlers[paymentId];
-
-            //get all the required data in one list (invoice, its existing payments and the current payment method details)
-            var expandedInvoices = invoices.Select(entity => (Invoice: entity,
-                    ExistingPayments: GetAllMoneroLikePayments(entity, cryptoCode),
-                    Prompt: entity.GetPaymentPrompt(paymentId),
-                    PaymentMethodDetails: handler.ParsePaymentPromptDetails(entity.GetPaymentPrompt(paymentId)
-                        .Details)))
-                .Select(tuple => (
-                    tuple.Invoice,
-                    tuple.PaymentMethodDetails,
-                    tuple.Prompt,
-                    ExistingPayments: tuple.ExistingPayments.Select(entity =>
-                        (Payment: entity, PaymentData: handler.ParsePaymentDetails(entity.Details),
-                            tuple.Invoice))
-                ));
-
-            var existingPaymentData = expandedInvoices.SelectMany(tuple => tuple.ExistingPayments);
-
-            var accountToAddressQuery = new Dictionary<long, List<long>>();
-            //create list of subaddresses to account to query the monero wallet
-            foreach (var expandedInvoice in expandedInvoices)
+            if (!string.IsNullOrEmpty(moneroEvent.BlockHash))
             {
-                foreach (var existingPayment in expandedInvoice.ExistingPayments)
-                {
-                    long paymentAccountIndex = existingPayment.PaymentData.SubaccountIndex;
-                    List<long> subaddressIndicesForAccount = accountToAddressQuery.GetValueOrDefault(paymentAccountIndex, []);
-                    subaddressIndicesForAccount.Add(existingPayment.PaymentData.SubaddressIndex);
-                    accountToAddressQuery.AddOrReplace(paymentAccountIndex, subaddressIndicesForAccount);
-                }
-
-                // add the current address for pending/unpaid balance
-                long currentAccountIndex = expandedInvoice.PaymentMethodDetails.AccountIndex;
-                List<long> subaddressIndicesForCurrentAccount = accountToAddressQuery.GetValueOrDefault(currentAccountIndex, []);
-                subaddressIndicesForCurrentAccount.Add(expandedInvoice.PaymentMethodDetails.AddressIndex);
-                accountToAddressQuery.AddOrReplace(currentAccountIndex, subaddressIndicesForCurrentAccount);
+                await OnNewBlock(moneroEvent.CryptoCode);
             }
 
-            var tasks = accountToAddressQuery.ToDictionary(datas => datas.Key,
-                datas => moneroWalletRpcClient.SendCommandAsync<GetTransfersRequest, GetTransfersResponse>(
-                    "get_transfers",
-                    new GetTransfersRequest
-                    {
-                        AccountIndex = datas.Key,
-                        In = true,
-                        SubaddrIndices = datas.Value.Distinct().ToList()
-                    }));
-
-            await Task.WhenAll(tasks.Values);
-
-
-            var transferProcessingTasks = new List<Task>();
-
-            var updatedPaymentEntities = new List<(PaymentEntity Payment, InvoiceEntity invoice)>();
-            foreach (var keyValuePair in tasks)
+            if (!string.IsNullOrEmpty(moneroEvent.TransactionHash))
             {
-                var transfers = keyValuePair.Value.Result.IncomingTransfers;
-                if (transfers == null)
+                await OnTransactionUpdated(moneroEvent.CryptoCode, moneroEvent.TransactionHash);
+            }
+        }
+    }
+
+    private async Task ReceivedPayment(InvoiceEntity invoice, PaymentEntity payment)
+    {
+        _logger.LogInformation(
+            $"Invoice {invoice.Id} received payment {payment.Value} {payment.Currency} {payment.Id}");
+
+        var prompt = invoice.GetPaymentPrompt(payment.PaymentMethodId);
+
+        if (prompt != null &&
+            prompt.Activated &&
+            prompt.Destination == payment.Destination &&
+            prompt.Calculate().Due > 0.0m)
+        {
+            await _invoiceActivator.ActivateInvoicePaymentMethod(invoice.Id, payment.PaymentMethodId, true);
+            invoice = await _invoiceRepository.GetInvoice(invoice.Id);
+        }
+
+        _eventAggregator.Publish(
+            new InvoiceEvent(invoice, InvoiceEvent.ReceivedPayment) { Payment = payment });
+    }
+
+    private async Task UpdatePaymentStates(string cryptoCode, InvoiceEntity[] invoices)
+    {
+        if (!invoices.Any())
+        {
+            return;
+        }
+
+        var moneroWalletRpcClient = _moneroRpcProvider.WalletRpcClients[cryptoCode];
+        var network = _networkProvider.GetNetwork(cryptoCode);
+        var paymentId = PaymentTypes.CHAIN.GetPaymentMethodId(network.CryptoCode);
+        var handler = (MoneroLikePaymentMethodHandler)_handlers[paymentId];
+
+        //get all the required data in one list (invoice, its existing payments and the current payment method details)
+        var expandedInvoices = invoices.Select(entity => (Invoice: entity,
+                ExistingPayments: GetAllMoneroLikePayments(entity, cryptoCode),
+                Prompt: entity.GetPaymentPrompt(paymentId),
+                PaymentMethodDetails: handler.ParsePaymentPromptDetails(entity.GetPaymentPrompt(paymentId)
+                    .Details)))
+            .Select(tuple => (
+                tuple.Invoice,
+                tuple.PaymentMethodDetails,
+                tuple.Prompt,
+                ExistingPayments: tuple.ExistingPayments.Select(entity =>
+                    (Payment: entity, PaymentData: handler.ParsePaymentDetails(entity.Details),
+                        tuple.Invoice))
+            ));
+
+        var existingPaymentData = expandedInvoices.SelectMany(tuple => tuple.ExistingPayments);
+
+        var accountToAddressQuery = new Dictionary<long, List<long>>();
+        //create list of subaddresses to account to query the monero wallet
+        foreach (var expandedInvoice in expandedInvoices)
+        {
+            foreach (var existingPayment in expandedInvoice.ExistingPayments)
+            {
+                long paymentAccountIndex = existingPayment.PaymentData.SubaccountIndex;
+                List<long> subaddressIndicesForAccount = accountToAddressQuery.GetValueOrDefault(paymentAccountIndex, []);
+                subaddressIndicesForAccount.Add(existingPayment.PaymentData.SubaddressIndex);
+                accountToAddressQuery.AddOrReplace(paymentAccountIndex, subaddressIndicesForAccount);
+            }
+
+            // add the current address for pending/unpaid balance
+            long currentAccountIndex = expandedInvoice.PaymentMethodDetails.AccountIndex;
+            List<long> subaddressIndicesForCurrentAccount = accountToAddressQuery.GetValueOrDefault(currentAccountIndex, []);
+            subaddressIndicesForCurrentAccount.Add(expandedInvoice.PaymentMethodDetails.AddressIndex);
+            accountToAddressQuery.AddOrReplace(currentAccountIndex, subaddressIndicesForCurrentAccount);
+        }
+
+        var tasks = accountToAddressQuery.ToDictionary(datas => datas.Key,
+            datas => moneroWalletRpcClient.SendCommandAsync<GetTransfersRequest, GetTransfersResponse>(
+                "get_transfers",
+                new GetTransfersRequest
                 {
-                    continue;
-                }
-
-                transferProcessingTasks.AddRange(transfers.Select(transfer =>
-                {
-                    InvoiceEntity invoice = null;
-                    var existingMatch = existingPaymentData.SingleOrDefault(tuple =>
-                        tuple.Payment.Destination == transfer.Address &&
-                        tuple.PaymentData.TransactionId == transfer.TransactionId);
-
-                    if (existingMatch.Invoice != null)
-                    {
-                        invoice = existingMatch.Invoice;
-                    }
-                    else
-                    {
-                        var newMatch = expandedInvoices.SingleOrDefault(tuple =>
-                            tuple.Prompt.Destination == transfer.Address);
-
-                        if (newMatch.Invoice == null)
-                        {
-                            return Task.CompletedTask;
-                        }
-
-                        invoice = newMatch.Invoice;
-                    }
-
-
-                    return HandlePaymentData(cryptoCode, transfer.Address, transfer.Amount, transfer.SubaddressIndex.AccountIndex,
-                        transfer.SubaddressIndex.Index, transfer.TransactionId, transfer.Confirmations, transfer.Height,
-                        transfer.UnlockTime, invoice,
-                        updatedPaymentEntities);
+                    AccountIndex = datas.Key,
+                    In = true,
+                    SubaddrIndices = datas.Value.Distinct().ToList()
                 }));
+
+        await Task.WhenAll(tasks.Values);
+
+
+        var transferProcessingTasks = new List<Task>();
+
+        var updatedPaymentEntities = new List<(PaymentEntity Payment, InvoiceEntity invoice)>();
+        foreach (var keyValuePair in tasks)
+        {
+            var transfers = keyValuePair.Value.Result.IncomingTransfers;
+            if (transfers == null)
+            {
+                continue;
             }
 
-            transferProcessingTasks.Add(
-                _paymentService.UpdatePayments(updatedPaymentEntities.Select(tuple => tuple.Item1).ToList()));
-            await Task.WhenAll(transferProcessingTasks);
-            foreach (var valueTuples in updatedPaymentEntities.GroupBy(entity => entity.Item2))
+            transferProcessingTasks.AddRange(transfers.Select(transfer =>
+            {
+                InvoiceEntity invoice = null;
+                var existingMatch = existingPaymentData.SingleOrDefault(tuple =>
+                    tuple.Payment.Destination == transfer.Address &&
+                    tuple.PaymentData.TransactionId == transfer.TransactionId);
+
+                if (existingMatch.Invoice != null)
+                {
+                    invoice = existingMatch.Invoice;
+                }
+                else
+                {
+                    var newMatch = expandedInvoices.SingleOrDefault(tuple =>
+                        tuple.Prompt.Destination == transfer.Address);
+
+                    if (newMatch.Invoice == null)
+                    {
+                        return Task.CompletedTask;
+                    }
+
+                    invoice = newMatch.Invoice;
+                }
+
+
+                return HandlePaymentData(cryptoCode, transfer.Address, transfer.Amount, transfer.SubaddressIndex.AccountIndex,
+                    transfer.SubaddressIndex.Index, transfer.TransactionId, transfer.Confirmations, transfer.Height,
+                    transfer.UnlockTime, invoice,
+                    updatedPaymentEntities);
+            }));
+        }
+
+        transferProcessingTasks.Add(
+            _paymentService.UpdatePayments(updatedPaymentEntities.Select(tuple => tuple.Item1).ToList()));
+        await Task.WhenAll(transferProcessingTasks);
+        foreach (var valueTuples in updatedPaymentEntities.GroupBy(entity => entity.Item2))
+        {
+            if (valueTuples.Any())
+            {
+                _eventAggregator.Publish(new InvoiceNeedUpdateEvent(valueTuples.Key.Id));
+            }
+        }
+    }
+
+    private async Task OnNewBlock(string cryptoCode)
+    {
+        await UpdateAnyPendingMoneroLikePayment(cryptoCode);
+        _eventAggregator.Publish(new NewBlockEvent()
+        { PaymentMethodId = PaymentTypes.CHAIN.GetPaymentMethodId(cryptoCode) });
+    }
+
+    private async Task OnTransactionUpdated(string cryptoCode, string transactionHash)
+    {
+        var paymentMethodId = PaymentTypes.CHAIN.GetPaymentMethodId(cryptoCode);
+        var transfer = await GetTransferByTxId(cryptoCode, transactionHash, this.CancellationToken);
+        if (transfer is null)
+        {
+            return;
+        }
+        var paymentsToUpdate = new List<(PaymentEntity Payment, InvoiceEntity invoice)>();
+
+        //group all destinations of the tx together and loop through the sets
+        foreach (var destination in transfer.Transfers.GroupBy(destination => destination.Address))
+        {
+            //find the invoice corresponding to this address, else skip
+            var invoice = await _invoiceRepository.GetInvoiceFromAddress(paymentMethodId, destination.Key);
+            if (invoice == null)
+            {
+                continue;
+            }
+
+            var index = destination.First().SubaddressIndex;
+
+            await HandlePaymentData(cryptoCode,
+                destination.Key,
+                destination.Sum(destination1 => destination1.Amount),
+                index.AccountIndex,
+                index.Index,
+                transfer.Transfer.TransactionId,
+                transfer.Transfer.Confirmations,
+                transfer.Transfer.Height,
+                transfer.Transfer.UnlockTime,
+                invoice,
+                paymentsToUpdate);
+        }
+
+        if (paymentsToUpdate.Any())
+        {
+            await _paymentService.UpdatePayments(paymentsToUpdate.Select(tuple => tuple.Payment).ToList());
+            foreach (var valueTuples in paymentsToUpdate.GroupBy(entity => entity.invoice))
             {
                 if (valueTuples.Any())
                 {
@@ -230,205 +284,150 @@ namespace BTCPayServer.Plugins.Monero.Services
                 }
             }
         }
+    }
 
-        private async Task OnNewBlock(string cryptoCode)
+    private async Task<GetTransferByTransactionIdResponse> GetTransferByTxId(string cryptoCode,
+        string transactionHash, CancellationToken cancellationToken)
+    {
+        var accounts = await _moneroRpcProvider.WalletRpcClients[cryptoCode].SendCommandAsync<GetAccountsRequest, GetAccountsResponse>("get_accounts", new GetAccountsRequest(), cancellationToken);
+        var accountIndexes = accounts
+            .Accounts
+            .Select(a => a.AccountIndex)
+            .ToList();
+        if (accountIndexes.Count is 0)
         {
-            await UpdateAnyPendingMoneroLikePayment(cryptoCode);
-            _eventAggregator.Publish(new NewBlockEvent()
-            { PaymentMethodId = PaymentTypes.CHAIN.GetPaymentMethodId(cryptoCode) });
+            accountIndexes.Add(null);
         }
-
-        private async Task OnTransactionUpdated(string cryptoCode, string transactionHash)
+        var req = accountIndexes
+            .Select(i => GetTransferByTxId(cryptoCode, transactionHash, i))
+            .ToArray();
+        foreach (var task in req)
         {
-            var paymentMethodId = PaymentTypes.CHAIN.GetPaymentMethodId(cryptoCode);
-            var transfer = await GetTransferByTxId(cryptoCode, transactionHash, this.CancellationToken);
-            if (transfer is null)
+            var result = await task;
+            if (result != null)
             {
-                return;
-            }
-            var paymentsToUpdate = new List<(PaymentEntity Payment, InvoiceEntity invoice)>();
-
-            //group all destinations of the tx together and loop through the sets
-            foreach (var destination in transfer.Transfers.GroupBy(destination => destination.Address))
-            {
-                //find the invoice corresponding to this address, else skip
-                var invoice = await _invoiceRepository.GetInvoiceFromAddress(paymentMethodId, destination.Key);
-                if (invoice == null)
-                {
-                    continue;
-                }
-
-                var index = destination.First().SubaddressIndex;
-
-                await HandlePaymentData(cryptoCode,
-                    destination.Key,
-                    destination.Sum(destination1 => destination1.Amount),
-                    index.AccountIndex,
-                    index.Index,
-                    transfer.Transfer.TransactionId,
-                    transfer.Transfer.Confirmations,
-                    transfer.Transfer.Height,
-                    transfer.Transfer.UnlockTime,
-                    invoice,
-                    paymentsToUpdate);
-            }
-
-            if (paymentsToUpdate.Any())
-            {
-                await _paymentService.UpdatePayments(paymentsToUpdate.Select(tuple => tuple.Payment).ToList());
-                foreach (var valueTuples in paymentsToUpdate.GroupBy(entity => entity.invoice))
-                {
-                    if (valueTuples.Any())
-                    {
-                        _eventAggregator.Publish(new InvoiceNeedUpdateEvent(valueTuples.Key.Id));
-                    }
-                }
-            }
-        }
-
-        private async Task<GetTransferByTransactionIdResponse> GetTransferByTxId(string cryptoCode,
-            string transactionHash, CancellationToken cancellationToken)
-        {
-            var accounts = await _moneroRpcProvider.WalletRpcClients[cryptoCode].SendCommandAsync<GetAccountsRequest, GetAccountsResponse>("get_accounts", new GetAccountsRequest(), cancellationToken);
-            var accountIndexes = accounts
-                .Accounts
-                .Select(a => a.AccountIndex)
-                .ToList();
-            if (accountIndexes.Count is 0)
-            {
-                accountIndexes.Add(null);
-            }
-            var req = accountIndexes
-                .Select(i => GetTransferByTxId(cryptoCode, transactionHash, i))
-                .ToArray();
-            foreach (var task in req)
-            {
-                var result = await task;
-                if (result != null)
-                {
-                    return result;
-                }
-            }
-
-            return null;
-        }
-
-        private async Task<GetTransferByTransactionIdResponse> GetTransferByTxId(string cryptoCode, string transactionHash, long? accountIndex)
-        {
-            try
-            {
-                var result = await _moneroRpcProvider.WalletRpcClients[cryptoCode]
-                    .SendCommandAsync<GetTransferByTransactionIdRequest, GetTransferByTransactionIdResponse>(
-                        "get_transfer_by_txid",
-                        new GetTransferByTransactionIdRequest
-                        {
-                            TransactionId = transactionHash,
-                            AccountIndex = accountIndex
-                        });
                 return result;
             }
-            catch (JsonRpcApiException)
-            {
-                return null;
-            }
         }
 
-        private async Task HandlePaymentData(string cryptoCode, string address, long totalAmount, uint subaccountIndex,
-            uint subaddressIndex,
-            string txId, int confirmations, ulong blockHeight, int locktime, InvoiceEntity invoice,
-            List<(PaymentEntity Payment, InvoiceEntity invoice)> paymentsToUpdate)
+        return null;
+    }
+
+    private async Task<GetTransferByTransactionIdResponse> GetTransferByTxId(string cryptoCode, string transactionHash, long? accountIndex)
+    {
+        try
         {
-            var network = _networkProvider.GetNetwork(cryptoCode);
-            var pmi = PaymentTypes.CHAIN.GetPaymentMethodId(network.CryptoCode);
-            var handler = (MoneroLikePaymentMethodHandler)_handlers[pmi];
-            var promptDetails = handler.ParsePaymentPromptDetails(invoice.GetPaymentPrompt(pmi).Details);
-            var details = new MoneroLikePaymentData
-            {
-                SubaccountIndex = subaccountIndex,
-                SubaddressIndex = subaddressIndex,
-                TransactionId = txId,
-                ConfirmationCount = confirmations,
-                BlockHeight = blockHeight,
-                LockTime = locktime,
-                InvoiceSettledConfirmationThreshold = promptDetails.InvoiceSettledConfirmationThreshold
-            };
-
-            // set destination address from transfer
-            var prompt = invoice.GetPaymentPrompt(pmi);
-            if (prompt != null && prompt.Destination != address)
-            {
-                prompt.Destination = address;
-                await _invoiceRepository.UpdatePrompt(invoice.Id, prompt, [address]);
-                invoice = await _invoiceRepository.GetInvoice(invoice.Id);
-            }
-
-            var status = GetStatus(details, invoice.SpeedPolicy) ? PaymentStatus.Settled : PaymentStatus.Processing;
-            var paymentData = new PaymentData
-            {
-                Status = status,
-                Amount = MoneroMoney.Convert(totalAmount),
-                Created = DateTimeOffset.UtcNow,
-                Id = $"{txId}#{subaccountIndex}#{subaddressIndex}",
-                Currency = network.CryptoCode,
-                InvoiceDataId = invoice.Id,
-            }.Set(invoice, handler, details);
-
-
-            //check if this tx exists as a payment to this invoice already
-            var alreadyExistingPaymentThatMatches = GetAllMoneroLikePayments(invoice, cryptoCode)
-                .SingleOrDefault(c => c.Id == paymentData.Id && c.PaymentMethodId == pmi);
-
-            //if it doesnt, add it and assign a new monerolike address to the system if a balance is still due
-            if (alreadyExistingPaymentThatMatches == null)
-            {
-                var payment = await _paymentService.AddPayment(paymentData, [txId]);
-                if (payment != null)
-                {
-                    await ReceivedPayment(invoice, payment);
-                }
-            }
-            else
-            {
-                //else update it with the new data
-                alreadyExistingPaymentThatMatches.Status = status;
-                alreadyExistingPaymentThatMatches.Details = JToken.FromObject(details, handler.Serializer);
-                paymentsToUpdate.Add((alreadyExistingPaymentThatMatches, invoice));
-            }
+            var result = await _moneroRpcProvider.WalletRpcClients[cryptoCode]
+                .SendCommandAsync<GetTransferByTransactionIdRequest, GetTransferByTransactionIdResponse>(
+                    "get_transfer_by_txid",
+                    new GetTransferByTransactionIdRequest
+                    {
+                        TransactionId = transactionHash,
+                        AccountIndex = accountIndex
+                    });
+            return result;
         }
-
-        private bool GetStatus(MoneroLikePaymentData details, SpeedPolicy speedPolicy)
-            => ConfirmationsRequired(details, speedPolicy) <= details.ConfirmationCount;
-
-        public static int ConfirmationsRequired(MoneroLikePaymentData details, SpeedPolicy speedPolicy)
-            => (details, speedPolicy) switch
-            {
-                (_, _) when details.ConfirmationCount < details.LockTime =>
-                    details.LockTime - details.ConfirmationCount,
-                ({ InvoiceSettledConfirmationThreshold: int v }, _) => v,
-                (_, SpeedPolicy.HighSpeed) => 0,
-                (_, SpeedPolicy.MediumSpeed) => 1,
-                (_, SpeedPolicy.LowMediumSpeed) => 2,
-                (_, SpeedPolicy.LowSpeed) => 6,
-                _ => 6,
-            };
-
-
-        private async Task UpdateAnyPendingMoneroLikePayment(string cryptoCode)
+        catch (JsonRpcApiException)
         {
-            var paymentMethodId = PaymentTypes.CHAIN.GetPaymentMethodId(cryptoCode);
-            var invoices = await _invoiceRepository.GetMonitoredInvoices(paymentMethodId);
-            if (!invoices.Any())
-            {
-                return;
-            }
-            invoices = invoices.Where(entity => entity.GetPaymentPrompt(paymentMethodId)?.Activated is true).ToArray();
-            await UpdatePaymentStates(cryptoCode, invoices);
+            return null;
+        }
+    }
+
+    private async Task HandlePaymentData(string cryptoCode, string address, long totalAmount, uint subaccountIndex,
+        uint subaddressIndex,
+        string txId, int confirmations, ulong blockHeight, int locktime, InvoiceEntity invoice,
+        List<(PaymentEntity Payment, InvoiceEntity invoice)> paymentsToUpdate)
+    {
+        var network = _networkProvider.GetNetwork(cryptoCode);
+        var pmi = PaymentTypes.CHAIN.GetPaymentMethodId(network.CryptoCode);
+        var handler = (MoneroLikePaymentMethodHandler)_handlers[pmi];
+        var promptDetails = handler.ParsePaymentPromptDetails(invoice.GetPaymentPrompt(pmi).Details);
+        var details = new MoneroLikePaymentData
+        {
+            SubaccountIndex = subaccountIndex,
+            SubaddressIndex = subaddressIndex,
+            TransactionId = txId,
+            ConfirmationCount = confirmations,
+            BlockHeight = blockHeight,
+            LockTime = locktime,
+            InvoiceSettledConfirmationThreshold = promptDetails.InvoiceSettledConfirmationThreshold
+        };
+
+        // set destination address from transfer
+        var prompt = invoice.GetPaymentPrompt(pmi);
+        if (prompt != null && prompt.Destination != address)
+        {
+            prompt.Destination = address;
+            await _invoiceRepository.UpdatePrompt(invoice.Id, prompt, [address]);
+            invoice = await _invoiceRepository.GetInvoice(invoice.Id);
         }
 
-        private IEnumerable<PaymentEntity> GetAllMoneroLikePayments(InvoiceEntity invoice, string cryptoCode)
+        var status = GetStatus(details, invoice.SpeedPolicy) ? PaymentStatus.Settled : PaymentStatus.Processing;
+        var paymentData = new PaymentData
         {
-            return invoice.GetPayments(false)
-                .Where(p => p.PaymentMethodId == PaymentTypes.CHAIN.GetPaymentMethodId(cryptoCode));
+            Status = status,
+            Amount = MoneroMoney.Convert(totalAmount),
+            Created = DateTimeOffset.UtcNow,
+            Id = $"{txId}#{subaccountIndex}#{subaddressIndex}",
+            Currency = network.CryptoCode,
+            InvoiceDataId = invoice.Id,
+        }.Set(invoice, handler, details);
+
+
+        //check if this tx exists as a payment to this invoice already
+        var alreadyExistingPaymentThatMatches = GetAllMoneroLikePayments(invoice, cryptoCode)
+            .SingleOrDefault(c => c.Id == paymentData.Id && c.PaymentMethodId == pmi);
+
+        //if it doesnt, add it and assign a new monerolike address to the system if a balance is still due
+        if (alreadyExistingPaymentThatMatches == null)
+        {
+            var payment = await _paymentService.AddPayment(paymentData, [txId]);
+            if (payment != null)
+            {
+                await ReceivedPayment(invoice, payment);
+            }
         }
+        else
+        {
+            //else update it with the new data
+            alreadyExistingPaymentThatMatches.Status = status;
+            alreadyExistingPaymentThatMatches.Details = JToken.FromObject(details, handler.Serializer);
+            paymentsToUpdate.Add((alreadyExistingPaymentThatMatches, invoice));
+        }
+    }
+
+    private bool GetStatus(MoneroLikePaymentData details, SpeedPolicy speedPolicy)
+        => ConfirmationsRequired(details, speedPolicy) <= details.ConfirmationCount;
+
+    public static int ConfirmationsRequired(MoneroLikePaymentData details, SpeedPolicy speedPolicy)
+        => (details, speedPolicy) switch
+        {
+            (_, _) when details.ConfirmationCount < details.LockTime =>
+                details.LockTime - details.ConfirmationCount,
+            ({ InvoiceSettledConfirmationThreshold: int v }, _) => v,
+            (_, SpeedPolicy.HighSpeed) => 0,
+            (_, SpeedPolicy.MediumSpeed) => 1,
+            (_, SpeedPolicy.LowMediumSpeed) => 2,
+            (_, SpeedPolicy.LowSpeed) => 6,
+            _ => 6,
+        };
+
+
+    private async Task UpdateAnyPendingMoneroLikePayment(string cryptoCode)
+    {
+        var paymentMethodId = PaymentTypes.CHAIN.GetPaymentMethodId(cryptoCode);
+        var invoices = await _invoiceRepository.GetMonitoredInvoices(paymentMethodId);
+        if (!invoices.Any())
+        {
+            return;
+        }
+        invoices = invoices.Where(entity => entity.GetPaymentPrompt(paymentMethodId)?.Activated is true).ToArray();
+        await UpdatePaymentStates(cryptoCode, invoices);
+    }
+
+    private IEnumerable<PaymentEntity> GetAllMoneroLikePayments(InvoiceEntity invoice, string cryptoCode)
+    {
+        return invoice.GetPayments(false)
+            .Where(p => p.PaymentMethodId == PaymentTypes.CHAIN.GetPaymentMethodId(cryptoCode));
     }
 }

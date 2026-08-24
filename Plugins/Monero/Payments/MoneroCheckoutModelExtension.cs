@@ -6,49 +6,48 @@ using BTCPayServer.Payments.Bitcoin;
 using BTCPayServer.Plugins.Monero.Services;
 using BTCPayServer.Services.Invoices;
 
-namespace BTCPayServer.Plugins.Monero.Payments
+namespace BTCPayServer.Plugins.Monero.Payments;
+
+public class MoneroCheckoutModelExtension : ICheckoutModelExtension
 {
-    public class MoneroCheckoutModelExtension : ICheckoutModelExtension
+    private readonly BTCPayNetworkBase _network;
+    private readonly PaymentMethodHandlerDictionary _handlers;
+    private readonly IPaymentLinkExtension paymentLinkExtension;
+
+    public MoneroCheckoutModelExtension(
+        PaymentMethodId paymentMethodId,
+        IEnumerable<IPaymentLinkExtension> paymentLinkExtensions,
+        BTCPayNetworkBase network,
+        PaymentMethodHandlerDictionary handlers)
     {
-        private readonly BTCPayNetworkBase _network;
-        private readonly PaymentMethodHandlerDictionary _handlers;
-        private readonly IPaymentLinkExtension paymentLinkExtension;
+        PaymentMethodId = paymentMethodId;
+        _network = network;
+        _handlers = handlers;
+        paymentLinkExtension = paymentLinkExtensions.Single(p => p.PaymentMethodId == PaymentMethodId);
+    }
+    public PaymentMethodId PaymentMethodId { get; }
 
-        public MoneroCheckoutModelExtension(
-            PaymentMethodId paymentMethodId,
-            IEnumerable<IPaymentLinkExtension> paymentLinkExtensions,
-            BTCPayNetworkBase network,
-            PaymentMethodHandlerDictionary handlers)
+    public string Image => _network.CryptoImagePath;
+    public string Badge => "";
+
+    public void ModifyCheckoutModel(CheckoutModelContext context)
+    {
+        if (context is not { Handler: MoneroLikePaymentMethodHandler handler })
         {
-            PaymentMethodId = paymentMethodId;
-            _network = network;
-            _handlers = handlers;
-            paymentLinkExtension = paymentLinkExtensions.Single(p => p.PaymentMethodId == PaymentMethodId);
+            return;
         }
-        public PaymentMethodId PaymentMethodId { get; }
-
-        public string Image => _network.CryptoImagePath;
-        public string Badge => "";
-
-        public void ModifyCheckoutModel(CheckoutModelContext context)
+        context.Model.CheckoutBodyComponentName = BitcoinCheckoutModelExtension.CheckoutBodyComponentName;
+        var details = context.InvoiceEntity.GetPayments(true)
+                .Select(p => p.GetDetails<MoneroLikePaymentData>(handler))
+                .Where(p => p is not null)
+                .FirstOrDefault();
+        if (details is not null)
         {
-            if (context is not { Handler: MoneroLikePaymentMethodHandler handler })
-            {
-                return;
-            }
-            context.Model.CheckoutBodyComponentName = BitcoinCheckoutModelExtension.CheckoutBodyComponentName;
-            var details = context.InvoiceEntity.GetPayments(true)
-                    .Select(p => p.GetDetails<MoneroLikePaymentData>(handler))
-                    .Where(p => p is not null)
-                    .FirstOrDefault();
-            if (details is not null)
-            {
-                context.Model.ReceivedConfirmations = details.ConfirmationCount;
-                context.Model.RequiredConfirmations = MoneroListener.ConfirmationsRequired(details, context.InvoiceEntity.SpeedPolicy);
-            }
-
-            context.Model.InvoiceBitcoinUrl = paymentLinkExtension.GetPaymentLink(context.Prompt, context.UrlHelper);
-            context.Model.InvoiceBitcoinUrlQR = context.Model.InvoiceBitcoinUrl;
+            context.Model.ReceivedConfirmations = details.ConfirmationCount;
+            context.Model.RequiredConfirmations = MoneroListener.ConfirmationsRequired(details, context.InvoiceEntity.SpeedPolicy);
         }
+
+        context.Model.InvoiceBitcoinUrl = paymentLinkExtension.GetPaymentLink(context.Prompt, context.UrlHelper);
+        context.Model.InvoiceBitcoinUrlQR = context.Model.InvoiceBitcoinUrl;
     }
 }

@@ -1,9 +1,8 @@
-namespace BTCPayServer.Plugins.Monero.Payments
+namespace BTCPayServer.Plugins.Monero.Payments;
+
+public class MoneroLikeOnChainPaymentMethodDetails
 {
-    public class MoneroLikeOnChainPaymentMethodDetails
-    {
-        public long AccountIndex { get; set; }
-        public uint AddressIndex { get; set; }
-        public int? InvoiceSettledConfirmationThreshold { get; set; }
-    }
+    public long AccountIndex { get; set; }
+    public uint AddressIndex { get; set; }
+    public int? InvoiceSettledConfirmationThreshold { get; set; }
 }

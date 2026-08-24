@@ -1,8 +1,7 @@
-namespace BTCPayServer.Plugins.Monero.Payments
+namespace BTCPayServer.Plugins.Monero.Payments;
+
+public class MoneroPaymentPromptDetails
 {
-    public class MoneroPaymentPromptDetails
-    {
-        public long AccountIndex { get; set; }
-        public int? InvoiceSettledConfirmationThreshold { get; set; }
-    }
+    public long AccountIndex { get; set; }
+    public int? InvoiceSettledConfirmationThreshold { get; set; }
 }
