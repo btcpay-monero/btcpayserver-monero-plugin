@@ -9,7 +9,7 @@
   <PropertyGroup>
     <Product>Monero</Product>
     <Description>This plugin extends BTCPay Server to enable users to receive payments via Monero.</Description>
-    <Version>1.3.4</Version>
+    <Version>1.3.5</Version>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
   </PropertyGroup>
 
