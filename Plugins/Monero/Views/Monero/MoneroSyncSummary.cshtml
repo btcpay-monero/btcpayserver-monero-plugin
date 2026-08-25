@@ -1,5 +1,5 @@
 @using BTCPayServer.Plugins.Monero.Services
-@inject MoneroRpcProvider MoneroRpcProvider
+@inject IMoneroRpcProvider MoneroRpcProvider
 @inject SignInManager<ApplicationUser> SignInManager;
 
 @if (SignInManager.IsSignedIn(User) && User.IsInRole(Roles.ServerAdmin) && MoneroRpcProvider.Summaries.Any())
