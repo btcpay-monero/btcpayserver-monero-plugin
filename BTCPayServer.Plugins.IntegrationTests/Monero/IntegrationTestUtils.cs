@@ -34,22 +34,28 @@ public static class IntegrationTestUtils
         }.Uri
     };
 
-    public static async ValueTask CleanUpAsync()
+    public static async ValueTask CleanUpAsync(bool dropDatabase = true)
     {
         await CloseTestXmrWalletFilesViaRpc();
         if (RunsInContainer)
         {
             DeleteWalletInContainer();
-            await DropDatabaseAsync(
-                "btcpayserver",
-                "Host=postgres;Port=5432;Username=postgres;Database=postgres");
+            if (dropDatabase)
+            {
+                await DropDatabaseAsync(
+                    "btcpayserver",
+                    "Host=postgres;Port=5432;Username=postgres;Database=postgres");
+            }
         }
         else
         {
             await RemoveWalletFromLocalDocker();
-            await DropDatabaseAsync(
-                "btcpayserver",
-                "Host=localhost;Port=39372;Username=postgres;Database=postgres");
+            if (dropDatabase)
+            {
+                await DropDatabaseAsync(
+                    "btcpayserver",
+                    "Host=localhost;Port=39372;Username=postgres;Database=postgres");
+            }
         }
     }
 

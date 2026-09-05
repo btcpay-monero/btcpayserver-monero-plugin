@@ -19,6 +19,42 @@ namespace BTCPayServer.Plugins.IntegrationTests.Monero;
 public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroIntegrationTestBase(helper)
 {
     [Fact]
+    public async Task ShouldFailSubaddressIndexWhenOutOfSync()
+    {
+        await using var s = CreatePlaywrightTester();
+        s.Server.PayTester.BindAllInterfaces = true;
+        await s.StartAsync();
+
+        await SetupStoreWithXmrAndCreateInvoice(s, amount: "4.20",
+            "9w62SzNLhi5N2LoAas2DuTgMmwNjbyvqfR4ZNkKt7wsD7P341t9bkJWjG625YPdwMd8K5292EWAaAWCQQKj1Kc7ASkpKXcM",
+            "fc3d3ba5b8055991c51c3ba71df470b4a8920248e430584439baaf53ae4c750a");
+
+        await IntegrationTestUtils.CleanUpAsync(false);
+
+        IMoneroRpcProvider moneroRpcProvider = s.Server.PayTester.GetService<IMoneroRpcProvider>();
+        await moneroRpcProvider.WalletRpcClients["XMR"]
+            .SendCommandAsync<GenerateFromKeysRequest, GenerateFromKeysResponse>("generate_from_keys", new GenerateFromKeysRequest
+            {
+                PrimaryAddress =
+                        "9w62SzNLhi5N2LoAas2DuTgMmwNjbyvqfR4ZNkKt7wsD7P341t9bkJWjG625YPdwMd8K5292EWAaAWCQQKj1Kc7ASkpKXcM",
+                PrivateViewKey = "fc3d3ba5b8055991c51c3ba71df470b4a8920248e430584439baaf53ae4c750a",
+                WalletFileName = "wallet",
+                Password = ""
+            }, TestContext.Current.CancellationToken);
+
+        await Task.Delay(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
+
+        await s.Page.Locator("a.nav-link[href*='invoices']").ClickAsync();
+        await s.Page.Locator("#page-primary").ClickAsync();
+        await s.Page.FillAsync("#Amount", "4.20");
+        await s.Page.FillAsync("#BuyerEmail", "monero-test@monero.com");
+        await s.Page.Locator("#page-primary").ClickAsync();
+
+        // Fails to view the last invoice
+        await s.Page.Locator("a[href^='/i/']").GetAttributeAsync("href");
+    }
+
+    [Fact]
     public async Task ShouldSettleInvoiceAfterPartialThenFullPayment()
     {
         await using var s = CreatePlaywrightTester();
@@ -28,6 +64,8 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroInteg
         var invoiceId = await SetupStoreWithXmrAndCreateInvoice(s, amount: "4.20",
             "9yEzCbcYdg6MqZ5AkEh8V3YCriyN1tvmtWEHdBEUHkF6D6kN1MMD2Kd2QVWoTY67aNHNYKMUP3xfteLS2QNavJxpJdx6mWj",
             "1f4668e8c1979b4c7dae13dc149fd95cd7ff2883becffe160c21f9e02c821c08");
+
+        await CheckInvoiceDetails(s.Page, invoiceId, "4.20");
 
         // Pay half of the invoice
         await PayInvoice(s.Page, divisor: 2);
@@ -74,6 +112,8 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroInteg
         var invoiceId = await SetupStoreWithXmrAndCreateInvoice(s, amount: "4.20",
             "9vGsWQCtxCWBXQBsmiRvPpgzNw6CL5ANqLip4UH8xXW7FrszpZTeAQdPxDp5H1vPnWa6UxFovxqqGBZQUnZ9i9GFBir3eHV",
             "31d082a3fab955ec6abe83d0edbfae7a0fbae66358230ee3eb01c155c32e880d");
+
+        await CheckInvoiceDetails(s.Page, invoiceId, "4.20");
 
         // Pay half of the invoice
         (decimal halfOfTheOriginalPay, string originalAddress) = await PayInvoice(s.Page, divisor: 2);
@@ -183,19 +223,21 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroInteg
         await s.Page.FillAsync("#BuyerEmail", "monero@monero.com");
         await s.Page.Locator("#page-primary").ClickAsync();
 
-        // View the invoice
+        // Get invoice ID
         var href = await s.Page.Locator("a[href^='/i/']").GetAttributeAsync("href");
         var invoiceId = href?.Split("/i/").Last()!;
-        await s.Page.Locator($"a[href='/i/{invoiceId}']").ClickAsync();
-        await s.Page.ClickAsync("#DetailsToggle");
+        return invoiceId;
+    }
 
-        // Verify the total fiat amount
-        var totalFiat = await s.Page
+    private static async Task CheckInvoiceDetails(IPage page, string invoiceId, string expectedAmount)
+    {
+        await page.Locator($"a[href='/i/{invoiceId}']").ClickAsync();
+        await page.ClickAsync("#DetailsToggle");
+
+        var totalFiat = await page
             .Locator("#PaymentDetails-TotalFiat dd.clipboard-button")
             .InnerTextAsync();
-        Assert.Equal($"${amount}", totalFiat);
-
-        return invoiceId;
+        Assert.Equal($"${expectedAmount}", totalFiat);
     }
 
     private static async Task AssertPartialPaymentState(IPage page, string invoiceId)

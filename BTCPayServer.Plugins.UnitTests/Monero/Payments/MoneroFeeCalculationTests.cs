@@ -77,7 +77,7 @@ public class MoneroFeeCalculationTests
             {
                 GetFeeRate = Task.FromResult(feeEstimate),
                 ReserveAddress =
-                    s => Task.FromResult(new CreateAddressResponse { Address = "fake-xmr-address", Index = 0 }),
+                    _ => Task.FromResult(new CreateAddressResponse { Address = "fake-xmr-address", Index = 0 }),
                 AccountIndex = 0
             }
         };
