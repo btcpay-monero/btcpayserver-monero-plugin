@@ -19,8 +19,6 @@ using Microsoft.Extensions.Logging;
 using Monero.Common;
 using Monero.Wallet.Rpc;
 
-using NBitcoin;
-
 using Newtonsoft.Json.Linq;
 
 namespace BTCPayServer.Plugins.Monero.Services;
@@ -153,14 +151,14 @@ public class MoneroListener : EventHostedServiceBase
                 long paymentAccountIndex = existingPayment.PaymentData.SubaccountIndex;
                 List<long> subaddressIndicesForAccount = accountToAddressQuery.GetValueOrDefault(paymentAccountIndex, []);
                 subaddressIndicesForAccount.Add(existingPayment.PaymentData.SubaddressIndex);
-                accountToAddressQuery.AddOrReplace(paymentAccountIndex, subaddressIndicesForAccount);
+                accountToAddressQuery[paymentAccountIndex] = subaddressIndicesForAccount;
             }
 
             // add the current address for pending/unpaid balance
             long currentAccountIndex = expandedInvoice.PaymentMethodDetails.AccountIndex;
             List<long> subaddressIndicesForCurrentAccount = accountToAddressQuery.GetValueOrDefault(currentAccountIndex, []);
             subaddressIndicesForCurrentAccount.Add(expandedInvoice.PaymentMethodDetails.AddressIndex);
-            accountToAddressQuery.AddOrReplace(currentAccountIndex, subaddressIndicesForCurrentAccount);
+            accountToAddressQuery[currentAccountIndex] = subaddressIndicesForCurrentAccount;
         }
 
         var tasks = accountToAddressQuery.ToDictionary(datas => datas.Key,

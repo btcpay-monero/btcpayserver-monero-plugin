@@ -10,8 +10,6 @@ using Monero.Common;
 using Monero.Daemon.Common;
 using Monero.Wallet.Rpc;
 
-using NBitcoin;
-
 namespace BTCPayServer.Plugins.Monero.Services;
 
 public interface IMoneroRpcProvider
@@ -124,10 +122,10 @@ public class MoneroRpcProvider : IMoneroRpcProvider
 
         var changed = !Summaries.ContainsKey(cryptoCode) || IsAvailable(cryptoCode) != IsAvailable(summary);
 
-        Summaries.AddOrReplace(cryptoCode, summary);
+        Summaries[cryptoCode] = summary;
         if (changed)
         {
-            _eventAggregator.Publish(new MoneroDaemonStateChange() { Summary = summary, CryptoCode = cryptoCode });
+            _eventAggregator.Publish(new MoneroDaemonStateChange { Summary = summary, CryptoCode = cryptoCode });
         }
 
         return summary;
