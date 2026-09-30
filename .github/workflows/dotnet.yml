@@ -43,7 +43,10 @@ jobs:
         dotnet validate package local nuget-packages/BTCPayServer.Plugins.Monero.1.0.0.nupkg
 
     - name: Run unit tests
-      run: dotnet test BTCPayServer.Plugins.UnitTests -c Release --no-build -v n /p:CollectCoverage=true /p:CoverletOutput=../coverage/unit/ /p:CoverletOutputFormat=cobertura /p:Include="[BTCPayServer.Plugins.Monero*]*"
+      run: |
+        dotnet test --project BTCPayServer.Plugins.UnitTests -c Release --no-build --output Detailed --coverlet --coverlet-output-format cobertura --coverlet-include "[BTCPayServer.Plugins.Monero*]*"
+        mkdir -p TestResults/coverage/unit
+        mv TestResults/coverage.cobertura.*.xml TestResults/coverage/unit/coverage.cobertura.xml
 
     - name: Run integration tests
       run: |
@@ -58,7 +61,7 @@ jobs:
       uses: actions/upload-artifact@v6
       with:
         name: coverage-report
-        path: coverage/merged/Cobertura.xml
+        path: TestResults/coverage/merged/Cobertura.xml
 
     - name: Upload NuGet package
       uses: actions/upload-artifact@v6

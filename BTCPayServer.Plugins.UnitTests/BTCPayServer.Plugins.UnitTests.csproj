@@ -6,28 +6,22 @@
         <Nullable>enable</Nullable>
         <IsPackable>false</IsPackable>
         <IsTestProject>true</IsTestProject>
+        <OutputType>Exe</OutputType>
         <AssemblyName>BTCPayServer.Plugins.UnitTests</AssemblyName>
         <CoverletOutput>$(MSBuildProjectDirectory)/coverage/</CoverletOutput>
         <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+        <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="coverlet.msbuild" Version="10.0.0">
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-            <PrivateAssets>all</PrivateAssets>
-        </PackageReference>
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
         <PackageReference Include="Moq" Version="4.20.72" />
-        <PackageReference Include="xunit.v3" Version="3.2.2" />
-        <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
+        <PackageReference Include="coverlet.MTP" Version="10.1.0" />
+        <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" Version="18.11.2" />
     </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\Plugins\Monero\BTCPayServer.Plugins.Monero.csproj" />
-        <ProjectReference Include="..\submodules\btcpayserver\BTCPayServer.Abstractions\BTCPayServer.Abstractions.csproj" />
+        <ProjectReference Include="..\submodules\btcpayserver\BTCPayServer.Tests\BTCPayServer.Tests.csproj" />
     </ItemGroup>
 
     <!-- This will make sure that referencing BTCPayServer doesn't put any artifact in the published directory -->

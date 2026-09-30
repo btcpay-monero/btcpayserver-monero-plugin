@@ -63,12 +63,12 @@ To build and run unit tests, run the following commands:
 
 ```bash
 dotnet build btcpay-monero-plugin.sln
-dotnet test BTCPayServer.Plugins.UnitTests --verbosity normal
+dotnet test BTCPayServer.Plugins.UnitTests --output Detailed
 ```
 To run unit tests with coverage, run the following command:
 
 ```bash
-dotnet test BTCPayServer.Plugins.UnitTests -v n /p:CollectCoverage=true /p:CoverletOutput=../coverage/unit/ /p:CoverletOutputFormat=cobertura /p:Include="[BTCPayServer.Plugins.Monero*]*"
+dotnet test --project BTCPayServer.Plugins.UnitTests -c Release --no-build --output Detailed --coverlet --coverlet-output-format cobertura --coverlet-include "[BTCPayServer.Plugins.Monero*]*"
 ```
 
 To build and run integration tests, run the following commands:

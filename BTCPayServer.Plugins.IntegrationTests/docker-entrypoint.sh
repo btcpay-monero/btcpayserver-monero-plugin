@@ -1,9 +1,17 @@
 #!/bin/sh
 set -e
 
-dotnet test -c "${CONFIGURATION_NAME}" --logger "console;verbosity=detailed" --no-build -v n /p:CollectCoverage=true /p:CoverletOutput=/coverage/integration/ /p:CoverletOutputFormat=cobertura /p:Include="[BTCPayServer.Plugins.Monero*]*"
+dotnet "bin/${CONFIGURATION_NAME}/net10.0/BTCPayServer.Plugins.IntegrationTests.dll" \
+  --output Detailed \
+  --coverlet \
+  --coverlet-output-format cobertura \
+  --coverlet-include "[BTCPayServer.Plugins.Monero*]*"
+
+mkdir -p /TestResults/coverage/integration
+mv "bin/${CONFIGURATION_NAME}/net10.0/TestResults"/coverage.cobertura.*.xml \
+   /TestResults/coverage/integration/coverage.cobertura.xml
 
 reportgenerator \
-  -reports:"/coverage/unit/coverage.cobertura.xml;/coverage/integration/coverage.cobertura.xml" \
-  -targetdir:"/coverage/merged" \
+  -reports:"/TestResults/coverage/unit/coverage.cobertura.xml;/TestResults/coverage/integration/coverage.cobertura.xml" \
+  -targetdir:"/TestResults/coverage/merged" \
   -reporttypes:"HtmlSummary;Cobertura"

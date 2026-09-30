@@ -3,7 +3,7 @@
 .idea
 Plugins/packed
 .vs/
-coverage
+TestResults
 nuget-packages
 **/.AssemblyAttributes
 btcpay-monero-plugin.sln.DotSettings.user

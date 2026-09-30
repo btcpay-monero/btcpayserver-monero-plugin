@@ -18,7 +18,7 @@ namespace BTCPayServer.Plugins.IntegrationTests.Monero;
 [Collection("Mining")]
 public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroIntegrationTestBase(helper)
 {
-    [Fact]
+    [Fact(Timeout = 300_000)]
     public async Task ShouldSettleInvoiceAfterPartialThenFullPayment()
     {
         await using var s = CreatePlaywrightTester();
@@ -60,11 +60,12 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroInteg
         await PayInvoice(s.Page);
 
         await MiningFixture.MineToHeightOffset(17);
+        TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
 
         await AssertFullyPaidReceipt(s.Page, "$4.20");
     }
 
-    [Fact]
+    [Fact(Timeout = 300_000)]
     public async Task ShouldReuseOriginalAddressForSubsequentPartialPayment()
     {
         await using var s = CreatePlaywrightTester();
@@ -99,6 +100,7 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroInteg
 
         // Mine some blocks to verify
         await MiningFixture.MineToHeightOffset(18);
+        TestContext.Current.CancellationToken.ThrowIfCancellationRequested();
 
         await AssertPartialPaymentState(s.Page, invoiceId);
 
