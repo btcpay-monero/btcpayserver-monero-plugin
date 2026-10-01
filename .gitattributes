@@ -4,6 +4,9 @@
 # Explicitly set Unix LF endings for .sh files
 *.sh text eol=lf
 
+# GitHub Actions workflows must be LF (Dependabot fails on CRLF): https://github.com/dependabot/dependabot-core/issues/16326
+.github/workflows/*.yml text eol=lf
+
 # Denote all files that are truly binary and should not be modified.
 *.png binary
 *.jpg binary

@@ -19,7 +19,7 @@ updates:
           - "*"
 
   - package-ecosystem: "docker"
-    directory: "/"
+    directory: "/BTCPayServer.Plugins.IntegrationTests"
     schedule:
       interval: "weekly"
     groups:
@@ -28,7 +28,7 @@ updates:
           - "*"
 
   - package-ecosystem: "docker-compose"
-    directory: "/"
+    directory: "/BTCPayServer.Plugins.IntegrationTests"
     schedule:
       interval: "weekly"
     groups:
