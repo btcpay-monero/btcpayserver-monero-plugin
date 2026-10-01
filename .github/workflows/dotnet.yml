@@ -18,12 +18,12 @@ jobs:
     steps:
 
     - name: Initialize and update submodules
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
       with:
         submodules: recursive
         
     - name: Setup .NET
-      uses: actions/setup-dotnet@v5
+      uses: actions/setup-dotnet@v6
       with:
         dotnet-version: 10.0.x
 
@@ -58,13 +58,13 @@ jobs:
       run: docker compose -f BTCPayServer.Plugins.IntegrationTests/docker-compose.yml down -v
 
     - name: Upload coverage report
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: coverage-report
         path: TestResults/coverage/merged/Cobertura.xml
 
     - name: Upload NuGet package
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: nuget-package-${{ github.sha }}
         path: nuget-packages/BTCPayServer.Plugins.Monero.1.0.0.nupkg
