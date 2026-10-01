@@ -27,7 +27,7 @@ services:
 
   # The dev container is not used, it is just handy to run `docker-compose up dev` to start all services
   dev:
-    image: alpine:3.23.5
+    image: alpine:3.24.2
     container_name: dev
     command: [ "/bin/sh", "-c", "trap : TERM INT; while :; do echo Ready to code and debug like a rockstar!!!; sleep 2073600; done & wait" ]
     depends_on:
@@ -36,7 +36,7 @@ services:
       - xmr_cashcow_wallet
 
   node_1:
-    image: btcpayserver/monero:0.18.4.3
+    image: btcpayserver/monero:0.18.5.1
     container_name: node_1
     command: [
       "monerod",
@@ -60,7 +60,7 @@ services:
       - "18081:18081"
 
   node_2:
-    image: btcpayserver/monero:0.18.4.3
+    image: btcpayserver/monero:0.18.5.1
     container_name: node_2
     command: [
       "monerod",
@@ -89,7 +89,7 @@ services:
       - node_1
 
   xmr_wallet:
-    image: btcpayserver/monero:0.18.4.3
+    image: btcpayserver/monero:0.18.5.1
     container_name: xmr_wallet
     command: [
       "monero-wallet-rpc",
@@ -116,7 +116,7 @@ services:
       - node_2
 
   xmr_cashcow_wallet:
-    image: btcpayserver/monero:0.18.4.3
+    image: btcpayserver/monero:0.18.5.1
     container_name: xmr_cashcow_wallet
     command: [
       "monero-wallet-rpc",
@@ -141,7 +141,7 @@ services:
       - node_2
 
   postgres:
-    image: postgres:18.4
+    image: postgres:18.6
     container_name: postgres
     environment:
       POSTGRES_HOST_AUTH_METHOD: trust
