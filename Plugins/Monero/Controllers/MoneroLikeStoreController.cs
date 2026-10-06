@@ -89,15 +89,8 @@ public class UIMoneroLikeStoreController : Controller
         return null;
     }
 
-    private static string SanitizeForLog(string value)
-    {
-        if (string.IsNullOrEmpty(value))
-        {
-            return value;
-        }
-
-        return new string(value.Where(c => !char.IsControl(c)).ToArray());
-    }
+    private static string SanitizeForLog(string value) =>
+        value?.Replace("\r", string.Empty).Replace("\n", string.Empty) ?? string.Empty;
 
     private MoneroLikePaymentMethodViewModel GetMoneroLikePaymentMethodViewModel(
         StoreData storeData, string cryptoCode,
