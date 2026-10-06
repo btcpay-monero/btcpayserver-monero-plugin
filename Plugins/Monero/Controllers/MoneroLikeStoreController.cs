@@ -152,6 +152,7 @@ public class UIMoneroLikeStoreController : Controller
     }
 
     [HttpPost("{cryptoCode}")]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> GetStoreMoneroLikePaymentMethod(MoneroLikePaymentMethodViewModel viewModel, string command, string cryptoCode)
     {
         cryptoCode = cryptoCode.ToUpperInvariant();
