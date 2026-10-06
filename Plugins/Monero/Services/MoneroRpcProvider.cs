@@ -17,6 +17,8 @@ public interface IMoneroRpcProvider
     bool IsConfigured(string cryptoCode);
     bool IsAvailable(string cryptoCode);
     string GetWalletDirectory(string cryptoCode);
+    Task ChangeWalletPassword(string cryptoCode, string oldPassword, string newPassword);
+    Task OpenWallet(string cryptoCode, string filename, string password);
     Task CloseWallet(string cryptoCode);
     Task<MoneroRpcProvider.MoneroLikeSummary> UpdateSummary(string cryptoCode);
     ConcurrentDictionary<string, MoneroRpcProvider.MoneroLikeSummary> Summaries { get; }
@@ -59,6 +61,36 @@ public class MoneroRpcProvider : IMoneroRpcProvider
     {
         return summary.Synced &&
                summary.WalletAvailable;
+    }
+
+    public async Task ChangeWalletPassword(string cryptoCode, string oldPassword, string newPassword)
+    {
+        if (!WalletRpcClients.TryGetValue(cryptoCode.ToUpperInvariant(), out var walletRpcClient))
+        {
+            throw new InvalidOperationException($"Wallet RPC client not found for {cryptoCode}");
+        }
+
+        await walletRpcClient.SendCommandAsync<object, MoneroRpcResponse>(
+            "change_wallet_password", new
+            {
+                old_password = oldPassword,
+                new_password = newPassword
+            });
+    }
+
+    public async Task OpenWallet(string cryptoCode, string filename, string password)
+    {
+        if (!WalletRpcClients.TryGetValue(cryptoCode.ToUpperInvariant(), out var walletRpcClient))
+        {
+            throw new InvalidOperationException($"Wallet RPC client not found for {cryptoCode}");
+        }
+
+        await walletRpcClient.SendCommandAsync<OpenWalletRequest, object>(
+            "open_wallet", new OpenWalletRequest
+            {
+                Filename = filename,
+                Password = password
+            });
     }
 
     public async Task CloseWallet(string cryptoCode)
