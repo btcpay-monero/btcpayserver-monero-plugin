@@ -83,10 +83,20 @@ public class UIMoneroLikeStoreController : Controller
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to get accounts for {CryptoCode}", cryptoCode);
+            _logger.LogError(ex, "Failed to get accounts for {CryptoCode}", SanitizeForLog(cryptoCode));
         }
 
         return null;
+    }
+
+    private static string SanitizeForLog(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return value;
+        }
+
+        return new string(value.Where(c => !char.IsControl(c)).ToArray());
     }
 
     private MoneroLikePaymentMethodViewModel GetMoneroLikePaymentMethodViewModel(
