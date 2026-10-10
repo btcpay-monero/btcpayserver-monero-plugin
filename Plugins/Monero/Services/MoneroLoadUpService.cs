@@ -6,9 +6,6 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-using Monero.Daemon.Common;
-using Monero.Wallet.Rpc;
-
 namespace BTCPayServer.Plugins.Monero.Services;
 
 public class MoneroLoadUpService : IHostedService
@@ -33,14 +30,27 @@ public class MoneroLoadUpService : IHostedService
             string walletDir = _moneroRpcProvider.GetWalletDirectory(CryptoCode);
             if (!string.IsNullOrEmpty(walletDir))
             {
-                string password = await TryToGetPassword(walletDir, cancellationToken);
+                string password = "";
+                string passwordFile = Path.Combine(walletDir, "password");
+                if (File.Exists(passwordFile))
+                {
+                    password = await File.ReadAllTextAsync(passwordFile, cancellationToken);
+                    password = password.Trim();
+                }
 
-                await _moneroRpcProvider.WalletRpcClients[CryptoCode]
-                    .SendCommandAsync<OpenWalletRequest, MoneroRpcResponse>("open_wallet",
-                        new OpenWalletRequest { Filename = "wallet", Password = password }, cancellationToken);
-
+                await _moneroRpcProvider.OpenWallet(CryptoCode, "wallet", password);
                 await _moneroRpcProvider.UpdateSummary(CryptoCode);
-                _logger.LogInformation("Existing wallet successfully loaded");
+
+                if (password.Length > 0)
+                {
+                    _logger.LogInformation("Old wallet file password detected - deprecation started");
+                    await _moneroRpcProvider.ChangeWalletPassword(CryptoCode, password, "");
+                    _logger.LogInformation("Wallet file password cleared");
+                    File.Delete(passwordFile);
+                    _logger.LogInformation("Legacy wallet password file deleted - deprecation finished");
+                }
+
+                _logger.LogInformation("Wallet successfully loaded");
             }
             else
             {
@@ -52,24 +62,6 @@ public class MoneroLoadUpService : IHostedService
             _logger.LogError("Failed to load {CryptoCode} wallet. Error Message: {ErrorMessage}", CryptoCode,
                 ex.Message);
         }
-    }
-
-    [Obsolete("Password is obsolete due to the inability to fully separate the password file from the wallet file.")]
-    private async Task<string> TryToGetPassword(string walletDir, CancellationToken cancellationToken)
-    {
-        string password = "";
-        string passwordFile = Path.Combine(walletDir, "password");
-        if (File.Exists(passwordFile))
-        {
-            password = await File.ReadAllTextAsync(passwordFile, cancellationToken);
-            password = password.Trim();
-        }
-        else
-        {
-            _logger.LogInformation("No password file found - ignoring");
-        }
-
-        return password;
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
