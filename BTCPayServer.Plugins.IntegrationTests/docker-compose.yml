@@ -36,7 +36,7 @@ services:
       - xmr_cashcow_wallet
 
   node_1:
-    image: btcpayserver/monero:0.18.5.1
+    image: btcpayserver/monero:0.18.5.3
     container_name: node_1
     command: [
       "monerod",
@@ -60,7 +60,7 @@ services:
       - "18081:18081"
 
   node_2:
-    image: btcpayserver/monero:0.18.5.1
+    image: btcpayserver/monero:0.18.5.3
     container_name: node_2
     command: [
       "monerod",
@@ -89,7 +89,7 @@ services:
       - node_1
 
   xmr_wallet:
-    image: btcpayserver/monero:0.18.5.1
+    image: btcpayserver/monero:0.18.5.3
     container_name: xmr_wallet
     command: [
       "monero-wallet-rpc",
@@ -116,7 +116,7 @@ services:
       - node_2
 
   xmr_cashcow_wallet:
-    image: btcpayserver/monero:0.18.5.1
+    image: btcpayserver/monero:0.18.5.3
     container_name: xmr_cashcow_wallet
     command: [
       "monero-wallet-rpc",
