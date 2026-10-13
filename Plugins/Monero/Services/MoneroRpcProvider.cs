@@ -20,6 +20,8 @@ public interface IMoneroRpcProvider
     Task ChangeWalletPassword(string cryptoCode, string oldPassword, string newPassword);
     Task OpenWallet(string cryptoCode, string filename, string password);
     Task CloseWallet(string cryptoCode);
+    Task<string> GetPrimaryAddress(string cryptoCode);
+    Task<string> GetPrivateViewKey(string cryptoCode);
     Task<MoneroRpcProvider.MoneroLikeSummary> UpdateSummary(string cryptoCode);
     ConcurrentDictionary<string, MoneroRpcProvider.MoneroLikeSummary> Summaries { get; }
     ImmutableDictionary<string, MoneroRpcConnection> DaemonRpcClients { get; }
@@ -102,6 +104,30 @@ public class MoneroRpcProvider : IMoneroRpcProvider
 
         await walletRpcClient.SendCommandAsync<NoRequestModel, object>(
             "close_wallet", NoRequestModel.Instance);
+    }
+
+    public async Task<string> GetPrimaryAddress(string cryptoCode)
+    {
+        if (!WalletRpcClients.TryGetValue(cryptoCode.ToUpperInvariant(), out var client))
+        {
+            throw new InvalidOperationException($"Wallet RPC client not found for {cryptoCode}");
+        }
+
+        var res = await client.SendCommandAsync<object, GetAddressResponse>(
+            "get_address", new { account_index = 0 });
+        return res.Address;
+    }
+
+    public async Task<string> GetPrivateViewKey(string cryptoCode)
+    {
+        if (!WalletRpcClients.TryGetValue(cryptoCode.ToUpperInvariant(), out var client))
+        {
+            throw new InvalidOperationException($"Wallet RPC client not found for {cryptoCode}");
+        }
+
+        var res = await client.SendCommandAsync<object, QueryKeyResponse>(
+            "query_key", new { key_type = "view_key" });
+        return res.Key;
     }
 
     public string GetWalletDirectory(string cryptoCode)

@@ -11,6 +11,7 @@ using BTCPayServer.Client;
 using BTCPayServer.Data;
 using BTCPayServer.Payments;
 using BTCPayServer.Plugins.Monero.Configuration;
+using BTCPayServer.Plugins.Monero.Data;
 using BTCPayServer.Plugins.Monero.Payments;
 using BTCPayServer.Plugins.Monero.Services;
 using BTCPayServer.Services.Invoices;
@@ -19,6 +20,7 @@ using BTCPayServer.Services.Stores;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 
@@ -35,6 +37,7 @@ public class UIMoneroLikeStoreController : Controller
     private readonly MoneroLikeConfiguration _MoneroLikeConfiguration;
     private readonly StoreRepository _StoreRepository;
     private readonly IMoneroRpcProvider _MoneroRpcProvider;
+    private readonly IDbContextFactory<MoneroDbContext> _moneroDbFactory;
     private readonly PaymentMethodHandlerDictionary _handlers;
     private readonly ILogger<UIMoneroLikeStoreController> _logger;
     private IStringLocalizer StringLocalizer { get; }
@@ -42,6 +45,7 @@ public class UIMoneroLikeStoreController : Controller
     public UIMoneroLikeStoreController(MoneroLikeConfiguration moneroLikeConfiguration,
         StoreRepository storeRepository, IMoneroRpcProvider moneroRpcProvider,
         PaymentMethodHandlerDictionary handlers,
+        IDbContextFactory<MoneroDbContext> moneroDbFactory,
         IStringLocalizer stringLocalizer,
         ILogger<UIMoneroLikeStoreController> logger)
     {
@@ -49,6 +53,7 @@ public class UIMoneroLikeStoreController : Controller
         _StoreRepository = storeRepository;
         _MoneroRpcProvider = moneroRpcProvider;
         _handlers = handlers;
+        _moneroDbFactory = moneroDbFactory;
         StringLocalizer = stringLocalizer;
         _logger = logger;
     }
@@ -92,6 +97,21 @@ public class UIMoneroLikeStoreController : Controller
     private static string SanitizeForLog(string value) =>
         value?.Replace("\r", string.Empty).Replace("\n", string.Empty) ?? string.Empty;
 
+    private async Task RecordPrimaryAddressAndViewKeyAsync(string cryptoCode)
+    {
+        try
+        {
+            var address = await _MoneroRpcProvider.GetPrimaryAddress(cryptoCode);
+            var viewKey = await _MoneroRpcProvider.GetPrivateViewKey(cryptoCode);
+            await _moneroDbFactory.SaveDefaultWalletAsync(address, viewKey);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to record primary address and view key for {CryptoCode}",
+                SanitizeForLog(cryptoCode));
+        }
+    }
+
     private MoneroLikePaymentMethodViewModel GetMoneroLikePaymentMethodViewModel(
         StoreData storeData, string cryptoCode,
         IPaymentFilter excludeFilters, GetAccountsResponse accountsResponse)
@@ -121,7 +141,7 @@ public class UIMoneroLikeStoreController : Controller
             };
         }
 
-        return new MoneroLikePaymentMethodViewModel()
+        return new MoneroLikePaymentMethodViewModel
         {
             Enabled =
                 settings != null &&
@@ -223,6 +243,8 @@ public class UIMoneroLikeStoreController : Controller
                         WalletFileName = "wallet",
                         RestoreHeight = viewModel.RestoreHeight
                     });
+
+                    await RecordPrimaryAddressAndViewKeyAsync(cryptoCode);
                 }
                 catch (Exception ex)
                 {
