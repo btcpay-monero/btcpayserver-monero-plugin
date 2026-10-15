@@ -1,11 +1,13 @@
 using System.Globalization;
 
+using BTCPayServer.Plugins.Monero.Data;
 using BTCPayServer.Plugins.Monero.Services;
 using BTCPayServer.Rating;
 using BTCPayServer.Services.Rates;
 using BTCPayServer.Tests;
 using BTCPayServer.Tests.Mocks;
 
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Playwright;
 
 using Monero.Wallet.Common;
@@ -161,6 +163,7 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroInteg
             .GetByText("View-only wallet created. The wallet will soon become available.")
             .InnerTextAsync();
         Assert.Contains("View-only wallet created", message);
+        await AssertWalletPersisted(s, primaryAddress, privateViewKey);
         await Task.Delay(TimeSpan.FromSeconds(5),
             TestContext.Current
                 .CancellationToken); // wallet-rpc needs some time to create wallet files. refactor this later
@@ -198,6 +201,20 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroInteg
         Assert.Equal($"${amount}", totalFiat);
 
         return invoiceId;
+    }
+
+    private static async Task AssertWalletPersisted(PlaywrightTester s, string primaryAddress, string privateViewKey)
+    {
+        var dbFactory = s.Server.PayTester.GetService<IDbContextFactory<MoneroDbContext>>();
+        await using var db = await dbFactory.CreateDbContextAsync(TestContext.Current.CancellationToken);
+
+        var wallet = await db.StoreWallets
+            .AsNoTracking()
+            .SingleOrDefaultAsync(w => w.StoreId == s.StoreId, TestContext.Current.CancellationToken);
+
+        Assert.NotNull(wallet);
+        Assert.Equal(primaryAddress, wallet.PrimaryAddress);
+        Assert.Equal(privateViewKey, wallet.PrivateViewKey);
     }
 
     private static async Task AssertPartialPaymentState(IPage page, string invoiceId)
