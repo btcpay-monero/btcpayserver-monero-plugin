@@ -1,11 +1,13 @@
 using System.Globalization;
 
+using BTCPayServer.Plugins.Monero.Data;
 using BTCPayServer.Plugins.Monero.Services;
 using BTCPayServer.Rating;
 using BTCPayServer.Services.Rates;
 using BTCPayServer.Tests;
 using BTCPayServer.Tests.Mocks;
 
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Playwright;
 
 using Monero.Wallet.Common;
@@ -161,6 +163,7 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroInteg
             .GetByText("View-only wallet created. The wallet will soon become available.")
             .InnerTextAsync();
         Assert.Contains("View-only wallet created", message);
+        await AssertWalletPersisted(s, primaryAddress, privateViewKey);
         await Task.Delay(TimeSpan.FromSeconds(5),
             TestContext.Current
                 .CancellationToken); // wallet-rpc needs some time to create wallet files. refactor this later
@@ -198,6 +201,20 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroInteg
         Assert.Equal($"${amount}", totalFiat);
 
         return invoiceId;
+    }
+
+    private static async Task AssertWalletPersisted(PlaywrightTester s, string primaryAddress, string privateViewKey)
+    {
+        var dbFactory = s.Server.PayTester.GetService<IDbContextFactory<MoneroDbContext>>();
+        await using var db = await dbFactory.CreateDbContextAsync(TestContext.Current.CancellationToken);
+
+        var wallet = await db.StoreWallets
+            .AsNoTracking()
+            .SingleOrDefaultAsync(TestContext.Current.CancellationToken);
+
+        Assert.NotNull(wallet);
+        Assert.Equal(primaryAddress, wallet.PrimaryAddress);
+        Assert.Equal(privateViewKey, wallet.PrivateViewKey);
     }
 
     private static async Task AssertPartialPaymentState(IPage page, string invoiceId)
@@ -299,13 +316,17 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroInteg
     [Fact]
     public async Task ShouldLoadViewWalletOnStartUpIfExists()
     {
-        await IntegrationTestUtils.CreateTestXmrWalletFilesViaRpc("");
+        const string primaryAddress =
+            "9yEzCbcYdg6MqZ5AkEh8V3YCriyN1tvmtWEHdBEUHkF6D6kN1MMD2Kd2QVWoTY67aNHNYKMUP3xfteLS2QNavJxpJdx6mWj";
+        const string privateViewKey = "1f4668e8c1979b4c7dae13dc149fd95cd7ff2883becffe160c21f9e02c821c08";
+        await IntegrationTestUtils.CreateTestXmrWalletFilesViaRpc(primaryAddress, privateViewKey, "");
         await IntegrationTestUtils.CloseTestXmrWalletFilesViaRpc();
         await using var s = CreatePlaywrightTester();
         await s.StartAsync();
         await s.RegisterNewUser(true);
         await s.CreateNewStore();
         await s.Page.Locator("a.nav-link[href*='monerolike/XMR']").ClickAsync();
+        await AssertWalletPersisted(s, primaryAddress, privateViewKey);
 
         var walletRpcIsAvailable = await s.Page
             .Locator("li.list-group-item:text('Wallet RPC available: True')")
@@ -321,13 +342,18 @@ public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroInteg
     )]
     public async Task ShouldLoadViewWalletWithPasswordOnStartUpIfExists()
     {
-        await IntegrationTestUtils.CreateTestXmrWalletWithPasswordAsync("pass123", "wallet_password");
+        const string primaryAddress =
+            "9yEzCbcYdg6MqZ5AkEh8V3YCriyN1tvmtWEHdBEUHkF6D6kN1MMD2Kd2QVWoTY67aNHNYKMUP3xfteLS2QNavJxpJdx6mWj";
+        const string privateViewKey = "1f4668e8c1979b4c7dae13dc149fd95cd7ff2883becffe160c21f9e02c821c08";
+        await IntegrationTestUtils.CreateTestXmrWalletWithPasswordAsync(primaryAddress, privateViewKey, "pass123",
+            "wallet_password");
         await IntegrationTestUtils.CloseTestXmrWalletFilesViaRpc();
         await using var s = CreatePlaywrightTester();
         await s.StartAsync();
         await s.RegisterNewUser(true);
         await s.CreateNewStore();
         await s.Page.Locator("a.nav-link[href*='monerolike/XMR']").ClickAsync();
+        await AssertWalletPersisted(s, primaryAddress, privateViewKey);
 
         var walletRpcIsAvailable = await s.Page
             .Locator("li.list-group-item:text('Wallet RPC available: True')")
