@@ -13,6 +13,7 @@ using BTCPayServer.Plugins.Monero.Configuration;
 using BTCPayServer.Plugins.Monero.Data;
 using BTCPayServer.Plugins.Monero.Payments;
 using BTCPayServer.Plugins.Monero.Services;
+using BTCPayServer.Plugins.Monero.Utils;
 using BTCPayServer.Services;
 
 using Microsoft.Extensions.Configuration;
@@ -39,6 +40,7 @@ public class MoneroPlugin : BaseBTCPayServerPlugin
         var pluginServices = (PluginServiceCollection)services;
         var prov = pluginServices.BootstrapServices.GetRequiredService<NBXplorerNetworkProvider>();
         var chainName = prov.NetworkType;
+        var backend = MoneroBackendResolver.Resolve();
 
         var network = new MoneroLikeSpecificBtcPayNetwork
         {
@@ -61,7 +63,7 @@ public class MoneroPlugin : BaseBTCPayServerPlugin
         services.AddBTCPayNetwork(network)
             .AddTransactionLinkProvider(pmi, new SimpleTransactionLinkProvider(blockExplorerLink));
 
-        services.AddSingleton(ConfigureMoneroLikeConfiguration);
+        services.AddSingleton(provider => ConfigureMoneroLikeConfiguration(provider, backend));
         services.AddHttpClient("XMRclient")
             .ConfigurePrimaryHttpMessageHandler(provider =>
             {
@@ -78,7 +80,20 @@ public class MoneroPlugin : BaseBTCPayServerPlugin
         services.AddSingleton<IMoneroRpcProvider, MoneroRpcProvider>();
         services.AddHostedService<MoneroLikeSummaryUpdaterHostedService>();
         services.AddHostedService<MoneroListener>();
-        services.AddHostedService<MoneroLoadUpService>();
+        switch (backend)
+        {
+            case MoneroBackend.LwsServer:
+                services.AddSingleton<IMoneroLwsProvider, MoneroLwsProvider>();
+                services.AddHostedService<MoneroLwsLoadUpService>();
+                break;
+            case MoneroBackend.WalletRpc:
+                services.AddSingleton<IMoneroRpcProvider, MoneroRpcProvider>();
+                services.AddHostedService<MoneroRpcLoadUpService>();
+                break;
+            default:
+                throw new InvalidOperationException($"Unsupported Monero backend: {MoneroBackendResolver.Resolve()}");
+        }
+
         services.AddSingleton(provider =>
             (IPaymentMethodHandler)ActivatorUtilities.CreateInstance(provider, typeof(MoneroLikePaymentMethodHandler),
                 network));
@@ -105,7 +120,8 @@ public class MoneroPlugin : BaseBTCPayServerPlugin
         }
     }
 
-    private static MoneroLikeConfiguration ConfigureMoneroLikeConfiguration(IServiceProvider serviceProvider)
+    private static MoneroLikeConfiguration ConfigureMoneroLikeConfiguration(
+        IServiceProvider serviceProvider, MoneroBackend backend)
     {
         var configuration = serviceProvider.GetService<IConfiguration>();
         var btcPayNetworkProvider = serviceProvider.GetService<BTCPayNetworkProvider>();
@@ -131,18 +147,31 @@ public class MoneroPlugin : BaseBTCPayServerPlugin
             var daemonPassword =
                 configuration.GetOrDefault<string>(
                     $"{moneroLikeSpecificBtcPayNetwork.CryptoCode}_daemon_password", null);
-            if (daemonUri == null || walletDaemonUri == null)
+            var lwsUri = configuration.GetOrDefault<Uri>(
+                $"{moneroLikeSpecificBtcPayNetwork.CryptoCode}_lws_uri",
+                null);
+
+            var isLwsBackend = backend == MoneroBackend.LwsServer;
+            if (isLwsBackend ? lwsUri is null : daemonUri is null || walletDaemonUri is null)
             {
                 var logger = serviceProvider.GetRequiredService<ILogger<MoneroPlugin>>();
                 var cryptoCode = moneroLikeSpecificBtcPayNetwork.CryptoCode.ToUpperInvariant();
-                if (daemonUri is null)
-                {
-                    logger.LogWarning("BTCPAY_{CryptoCode}_DAEMON_URI is not configured", cryptoCode);
-                }
 
-                if (walletDaemonUri is null)
+                if (isLwsBackend)
                 {
-                    logger.LogWarning("BTCPAY_{CryptoCode}_WALLET_DAEMON_URI is not configured", cryptoCode);
+                    logger.LogWarning("BTCPAY_{CryptoCode}_LWS_URI is not configured", cryptoCode);
+                }
+                else
+                {
+                    if (daemonUri is null)
+                    {
+                        logger.LogWarning("BTCPAY_{CryptoCode}_DAEMON_URI is not configured", cryptoCode);
+                    }
+
+                    if (walletDaemonUri is null)
+                    {
+                        logger.LogWarning("BTCPAY_{CryptoCode}_WALLET_DAEMON_URI is not configured", cryptoCode);
+                    }
                 }
 
                 logger.LogWarning("{CryptoCode} got disabled as it is not fully configured.", cryptoCode);
@@ -156,7 +185,8 @@ public class MoneroPlugin : BaseBTCPayServerPlugin
                         Username = daemonUsername,
                         Password = daemonPassword,
                         InternalWalletRpcUri = walletDaemonUri,
-                        WalletDirectory = walletDaemonWalletDirectory
+                        WalletDirectory = walletDaemonWalletDirectory,
+                        LwsUri = lwsUri
                     });
             }
         }
