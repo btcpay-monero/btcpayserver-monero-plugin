@@ -10,9 +10,17 @@ public class MoneroLikeConfiguration
 
 public class MoneroLikeConfigurationItem
 {
+    // shared
     public Uri DaemonRpcUri { get; set; }
+
+    // wallet-rpc backend
     public Uri InternalWalletRpcUri { get; set; }
     public string WalletDirectory { get; set; }
     public string Username { get; set; }
     public string Password { get; set; }
+
+    // lws backend
+    public Uri LwsUri { get; set; }
+    public string LwsUsername { get; set; }
+    public string LwsPassword { get; set; }
 }

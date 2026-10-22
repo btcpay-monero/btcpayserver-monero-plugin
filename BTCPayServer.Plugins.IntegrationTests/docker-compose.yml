@@ -9,8 +9,10 @@ services:
       TESTS_POSTGRES: User ID=postgres;Include Error Detail=true;Host=postgres;Port=5432;Database=btcpayserver
       TESTS_HOSTNAME: tests
       TESTS_INCONTAINER: "true"
+      BTCPAY_XMR_BACKEND: ${BTCPAY_XMR_BACKEND:-monero-wallet-rpc}
       BTCPAY_XMR_DAEMON_URI: http://node_1:18081
       BTCPAY_XMR_WALLET_DAEMON_URI: http://xmr_wallet:18082
+      BTCPAY_XMR_LWS_URI: http://lws:8443
       BTCPAY_XMR_CASHCOW_WALLET_DAEMON_URI: http://xmr_cashcow_wallet:18092
       BTCPAY_XMR_WALLET_DAEMON_WALLETDIR: /wallet
       PLAYWRIGHT_HEADLESS: "true"
@@ -18,6 +20,7 @@ services:
     depends_on:
       - postgres
       - xmr_wallet
+      - lws
       - xmr_cashcow_wallet
     extra_hosts:
       - "tests:127.0.0.1"
@@ -33,6 +36,7 @@ services:
     depends_on:
       - postgres
       - xmr_wallet
+      - lws
       - xmr_cashcow_wallet
 
   node_1:
@@ -72,6 +76,10 @@ services:
       "--rpc-bind-ip=0.0.0.0",
       "--confirm-external-bind",
       "--block-notify=/bin/sh ./scripts/notifier.sh -X GET http://${BTCPAY_NOTIFY_HOST:-host.docker.internal}:${TESTS_PORT:-14142}/monerolikedaemoncallback/block?cryptoCode=xmr&hash=%s",
+      "--zmq-rpc-bind-ip=0.0.0.0",
+      "--confirm-zmq-rpc-external-bind",
+      "--zmq-rpc-bind-port=28082",
+      "--zmq-pub=tcp://0.0.0.0:28084",
       "--testnet",
       "--add-exclusive-node=node_1:18080",
       "--no-igd",
@@ -83,6 +91,8 @@ services:
     ports:
       - "28080:28080"
       - "28081:28081"
+      - "28082:28082"
+      - "28084:28084"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
@@ -113,6 +123,30 @@ services:
       - xmr_wallet:/wallet
     depends_on:
       - node_1
+      - node_2
+
+  lws:
+    image: vtnerd/monero-lws:v1.0.4
+    container_name: lws
+    command: [
+      "--daemon=tcp://node_2:28082",
+      "--sub=tcp://node_2:28084",
+      "--log-level=4",
+      "--webhook-ssl-verification=none",
+      "--disable-admin-auth",
+      "--admin-rest-server=http://0.0.0.0:8443/admin",
+      "--rest-server=http://0.0.0.0:8443/lws",
+      "--access-control-origin=*",
+      "--confirm-external-bind",
+      "--max-subaddresses=200",
+      "--auto-accept-creation",
+      "--testnet"
+    ]
+    volumes:
+      - xmr_lws_data:/data
+    ports:
+      - "8443:8443"
+    depends_on:
       - node_2
 
   xmr_cashcow_wallet:
@@ -154,4 +188,5 @@ volumes:
   xmr_node_1_data:
   xmr_node_2_data:
   xmr_wallet:
+  xmr_lws_data:
   xmr_cashcow_wallet:

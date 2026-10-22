@@ -39,8 +39,9 @@
 
   <!-- Deterministic build -->
   <ItemGroup>
-    <PackageReference Include="DotNet.ReproducibleBuilds" Version="2.0.5" PrivateAssets="All"/>
+    <PackageReference Include="DotNet.ReproducibleBuilds" Version="2.0.5" PrivateAssets="All" />
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.402" PrivateAssets="All" />
+    <PackageReference Include="MoneroLwsNet" Version="1.0.0-beta" />
     <PackageReference Include="MoneroNet" Version="1.1.0" />
   </ItemGroup>
 

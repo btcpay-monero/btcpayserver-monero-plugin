@@ -16,7 +16,7 @@ using Xunit;
 namespace BTCPayServer.Plugins.IntegrationTests.Monero;
 
 [Collection("Mining")]
-public class MoneroPluginIntegrationTest(ITestOutputHelper helper) : MoneroIntegrationTestBase(helper)
+public class MoneroPluginRpcIntegrationTest(ITestOutputHelper helper) : MoneroRpcIntegrationTestBase(helper)
 {
     [Fact(Timeout = 300_000)]
     public async Task ShouldSettleInvoiceAfterPartialThenFullPayment()

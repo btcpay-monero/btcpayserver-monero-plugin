@@ -8,13 +8,13 @@ using Microsoft.Extensions.Logging;
 
 namespace BTCPayServer.Plugins.Monero.Services;
 
-public class MoneroLoadUpService : IHostedService
+public class MoneroRpcLoadUpService : IHostedService
 {
     private const string CryptoCode = "XMR";
-    private readonly ILogger<MoneroLoadUpService> _logger;
+    private readonly ILogger<MoneroRpcLoadUpService> _logger;
     private readonly IMoneroRpcProvider _moneroRpcProvider;
 
-    public MoneroLoadUpService(ILogger<MoneroLoadUpService> logger, IMoneroRpcProvider moneroRpcProvider)
+    public MoneroRpcLoadUpService(ILogger<MoneroRpcLoadUpService> logger, IMoneroRpcProvider moneroRpcProvider)
     {
         _moneroRpcProvider = moneroRpcProvider;
         _logger = logger;
@@ -25,7 +25,7 @@ public class MoneroLoadUpService : IHostedService
     {
         try
         {
-            _logger.LogInformation("Attempt to load existing wallet");
+            _logger.LogInformation("Attempt to load existing wallet with RPC");
 
             string walletDir = _moneroRpcProvider.GetWalletDirectory(CryptoCode);
             if (!string.IsNullOrEmpty(walletDir))

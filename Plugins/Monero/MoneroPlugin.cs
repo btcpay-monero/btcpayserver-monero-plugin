@@ -12,6 +12,7 @@ using BTCPayServer.Payments;
 using BTCPayServer.Plugins.Monero.Configuration;
 using BTCPayServer.Plugins.Monero.Payments;
 using BTCPayServer.Plugins.Monero.Services;
+using BTCPayServer.Plugins.Monero.Utils;
 using BTCPayServer.Services;
 
 using Microsoft.Extensions.Configuration;
@@ -38,6 +39,7 @@ public class MoneroPlugin : BaseBTCPayServerPlugin
         var pluginServices = (PluginServiceCollection)services;
         var prov = pluginServices.BootstrapServices.GetRequiredService<NBXplorerNetworkProvider>();
         var chainName = prov.NetworkType;
+        var backend = MoneroBackendResolver.Resolve();
 
         var network = new MoneroLikeSpecificBtcPayNetwork
         {
@@ -53,24 +55,25 @@ public class MoneroPlugin : BaseBTCPayServerPlugin
             UriScheme = "monero"
         };
         var blockExplorerLink = chainName == ChainName.Mainnet
-                    ? "https://www.exploremonero.com/transaction/{0}"
-                    : "https://testnet.xmrchain.net/tx/{0}";
+            ? "https://www.exploremonero.com/transaction/{0}"
+            : "https://testnet.xmrchain.net/tx/{0}";
         var pmi = PaymentTypes.CHAIN.GetPaymentMethodId("XMR");
         services.AddDefaultPrettyName(pmi, network.DisplayName);
         services.AddBTCPayNetwork(network)
-                .AddTransactionLinkProvider(pmi, new SimpleTransactionLinkProvider(blockExplorerLink));
+            .AddTransactionLinkProvider(pmi, new SimpleTransactionLinkProvider(blockExplorerLink));
 
 
-        services.AddSingleton(provider =>
-                ConfigureMoneroLikeConfiguration(provider));
+        services.AddSingleton(provider => ConfigureMoneroLikeConfiguration(provider, backend));
         services.AddHttpClient("XMRclient")
             .ConfigurePrimaryHttpMessageHandler(provider =>
             {
                 var configuration = provider.GetRequiredService<MoneroLikeConfiguration>();
-                if (!configuration.MoneroLikeConfigurationItems.TryGetValue("XMR", out var xmrConfig) || xmrConfig.Username is null || xmrConfig.Password is null)
+                if (!configuration.MoneroLikeConfigurationItems.TryGetValue("XMR", out var xmrConfig) ||
+                    xmrConfig.Username is null || xmrConfig.Password is null)
                 {
                     return new HttpClientHandler();
                 }
+
                 return new HttpClientHandler
                 {
                     Credentials = new NetworkCredential(xmrConfig.Username, xmrConfig.Password),
@@ -80,35 +83,50 @@ public class MoneroPlugin : BaseBTCPayServerPlugin
         services.AddSingleton<IMoneroRpcProvider, MoneroRpcProvider>();
         services.AddHostedService<MoneroLikeSummaryUpdaterHostedService>();
         services.AddHostedService<MoneroListener>();
-        services.AddHostedService<MoneroLoadUpService>();
+        switch (backend)
+        {
+            case MoneroBackend.LwsServer:
+                services.AddSingleton<IMoneroLwsProvider, MoneroLwsProvider>();
+                services.AddHostedService<MoneroLwsLoadUpService>();
+                break;
+            case MoneroBackend.WalletRpc:
+                services.AddSingleton<IMoneroRpcProvider, MoneroRpcProvider>();
+                services.AddHostedService<MoneroRpcLoadUpService>();
+                break;
+            default:
+                throw new InvalidOperationException($"Unsupported Monero backend: {MoneroBackendResolver.Resolve()}");
+        }
+
         services.AddSingleton(provider =>
-                (IPaymentMethodHandler)ActivatorUtilities.CreateInstance(provider, typeof(MoneroLikePaymentMethodHandler), network));
+            (IPaymentMethodHandler)ActivatorUtilities.CreateInstance(provider, typeof(MoneroLikePaymentMethodHandler),
+                network));
         services.AddSingleton(provider =>
-(IPaymentLinkExtension)ActivatorUtilities.CreateInstance(provider, typeof(MoneroPaymentLinkExtension), network, pmi));
+            (IPaymentLinkExtension)ActivatorUtilities.CreateInstance(provider, typeof(MoneroPaymentLinkExtension),
+                network, pmi));
         services.AddSingleton(provider =>
-(ICheckoutModelExtension)ActivatorUtilities.CreateInstance(provider, typeof(MoneroCheckoutModelExtension), network, pmi));
+            (ICheckoutModelExtension)ActivatorUtilities.CreateInstance(provider, typeof(MoneroCheckoutModelExtension),
+                network, pmi));
 
         services.AddUIExtension("store-wallets-nav", "/Views/Monero/StoreWalletsNavMoneroExtension.cshtml");
         services.AddUIExtension("store-invoices-payments", "/Views/Monero/ViewMoneroLikePaymentData.cshtml");
         services.AddSingleton<ISyncSummaryProvider, MoneroSyncSummaryProvider>();
     }
-    class SimpleTransactionLinkProvider : DefaultTransactionLinkProvider
-    {
-        public SimpleTransactionLinkProvider(string blockExplorerLink) : base(blockExplorerLink)
-        {
-        }
 
+    class SimpleTransactionLinkProvider(string blockExplorerLink) : DefaultTransactionLinkProvider(blockExplorerLink)
+    {
         public override string GetTransactionLink(string paymentId)
         {
             if (string.IsNullOrEmpty(BlockExplorerLink))
             {
                 return null;
             }
+
             return string.Format(CultureInfo.InvariantCulture, BlockExplorerLink, paymentId);
         }
     }
 
-    private static MoneroLikeConfiguration ConfigureMoneroLikeConfiguration(IServiceProvider serviceProvider)
+    private static MoneroLikeConfiguration ConfigureMoneroLikeConfiguration(
+        IServiceProvider serviceProvider, MoneroBackend backend)
     {
         var configuration = serviceProvider.GetService<IConfiguration>();
         var btcPayNetworkProvider = serviceProvider.GetService<BTCPayNetworkProvider>();
@@ -134,32 +152,50 @@ public class MoneroPlugin : BaseBTCPayServerPlugin
             var daemonPassword =
                 configuration.GetOrDefault<string>(
                     $"{moneroLikeSpecificBtcPayNetwork.CryptoCode}_daemon_password", null);
-            if (daemonUri == null || walletDaemonUri == null)
+            var lwsUri = configuration.GetOrDefault<Uri>(
+                $"{moneroLikeSpecificBtcPayNetwork.CryptoCode}_lws_uri",
+                null);
+
+            var isLwsBackend = backend == MoneroBackend.LwsServer;
+            if (isLwsBackend ? lwsUri is null : daemonUri is null || walletDaemonUri is null)
             {
                 var logger = serviceProvider.GetRequiredService<ILogger<MoneroPlugin>>();
                 var cryptoCode = moneroLikeSpecificBtcPayNetwork.CryptoCode.ToUpperInvariant();
-                if (daemonUri is null)
+
+                if (isLwsBackend)
                 {
-                    logger.LogWarning($"BTCPAY_{cryptoCode}_DAEMON_URI is not configured");
+                    logger.LogWarning($"BTCPAY_{cryptoCode}_LWS_URI is not configured");
                 }
-                if (walletDaemonUri is null)
+                else
                 {
-                    logger.LogWarning($"BTCPAY_{cryptoCode}_WALLET_DAEMON_URI is not configured");
+                    if (daemonUri is null)
+                    {
+                        logger.LogWarning($"BTCPAY_{cryptoCode}_DAEMON_URI is not configured");
+                    }
+
+                    if (walletDaemonUri is null)
+                    {
+                        logger.LogWarning($"BTCPAY_{cryptoCode}_DAEMON_URI is not configured");
+                    }
                 }
+
                 logger.LogWarning($"{cryptoCode} got disabled as it is not fully configured.");
             }
             else
             {
-                result.MoneroLikeConfigurationItems.Add(moneroLikeSpecificBtcPayNetwork.CryptoCode, new MoneroLikeConfigurationItem
-                {
-                    DaemonRpcUri = daemonUri,
-                    Username = daemonUsername,
-                    Password = daemonPassword,
-                    InternalWalletRpcUri = walletDaemonUri,
-                    WalletDirectory = walletDaemonWalletDirectory
-                });
+                result.MoneroLikeConfigurationItems.Add(moneroLikeSpecificBtcPayNetwork.CryptoCode,
+                    new MoneroLikeConfigurationItem
+                    {
+                        DaemonRpcUri = daemonUri,
+                        Username = daemonUsername,
+                        Password = daemonPassword,
+                        InternalWalletRpcUri = walletDaemonUri,
+                        WalletDirectory = walletDaemonWalletDirectory,
+                        LwsUri = lwsUri
+                    });
             }
         }
+
         return result;
     }
 }
