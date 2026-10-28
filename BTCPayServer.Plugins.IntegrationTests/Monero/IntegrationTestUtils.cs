@@ -231,7 +231,7 @@ public static class IntegrationTestUtils
         }
     }
 
-    public static async Task CreateTestXmrWalletFilesViaRpc(string password)
+    public static async Task CreateTestXmrWalletFilesViaRpc(string address, string viewKey, string password)
     {
         Logger.LogInformation("Creating wallet files via RPC on {Host}", MoneroRpcClient.BaseAddress!.Host);
 
@@ -242,9 +242,8 @@ public static class IntegrationTestUtils
             method = "generate_from_keys",
             @params = new
             {
-                address =
-                    "9yEzCbcYdg6MqZ5AkEh8V3YCriyN1tvmtWEHdBEUHkF6D6kN1MMD2Kd2QVWoTY67aNHNYKMUP3xfteLS2QNavJxpJdx6mWj",
-                viewkey = "1f4668e8c1979b4c7dae13dc149fd95cd7ff2883becffe160c21f9e02c821c08",
+                address,
+                viewkey = viewKey,
                 filename = "wallet",
                 restore_height = 0,
                 password
@@ -260,12 +259,7 @@ public static class IntegrationTestUtils
 
     public static async Task CloseTestXmrWalletFilesViaRpc()
     {
-        var requestPayload = new
-        {
-            id = "0",
-            jsonrpc = "2.0",
-            method = "close_wallet"
-        };
+        var requestPayload = new { id = "0", jsonrpc = "2.0", method = "close_wallet" };
 
         var json = JsonSerializer.Serialize(requestPayload);
         using var content = new StringContent(json, Encoding.UTF8, "application/json");
@@ -273,11 +267,11 @@ public static class IntegrationTestUtils
         await MoneroRpcClient.PostAsync("/json_rpc", content);
     }
 
-    public static async Task CreateTestXmrWalletWithPasswordAsync(string walletPassword, string viewWalletPasswordFile)
+    public static async Task CreateTestXmrWalletWithPasswordAsync(string address, string viewKey, string walletPassword,
+        string viewWalletPasswordFile)
     {
-        await CreateTestXmrWalletFilesViaRpc(walletPassword);
+        await CreateTestXmrWalletFilesViaRpc(address, viewKey, walletPassword);
 
         await CopyViewWalletPasswordFileToMoneroRpcDirAsync(viewWalletPasswordFile);
     }
-
 }
