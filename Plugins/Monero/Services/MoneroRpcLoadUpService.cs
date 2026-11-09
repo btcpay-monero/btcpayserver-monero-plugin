@@ -11,8 +11,8 @@ using Microsoft.Extensions.Logging;
 
 namespace BTCPayServer.Plugins.Monero.Services;
 
-public class MoneroLoadUpService(
-    ILogger<MoneroLoadUpService> logger,
+public class MoneroRpcLoadUpService(
+    ILogger<MoneroRpcLoadUpService> logger,
     IMoneroRpcProvider moneroRpcProvider,
     IDbContextFactory<MoneroDbContext> moneroDbFactory)
     : IHostedService
@@ -66,6 +66,11 @@ public class MoneroLoadUpService(
         }
     }
 
+    public Task StopAsync(CancellationToken cancellationToken)
+    {
+        return Task.CompletedTask;
+    }
+
     private async Task RecordPrimaryAddressAndViewKeyAsync(CancellationToken ct)
     {
         try
@@ -79,10 +84,5 @@ public class MoneroLoadUpService(
         {
             logger.LogError(ex, "Failed to record {CryptoCode} primary address and view key", CryptoCode);
         }
-    }
-
-    public Task StopAsync(CancellationToken cancellationToken)
-    {
-        return Task.CompletedTask;
     }
 }
