@@ -1,4 +1,5 @@
 @using BTCPayServer.Abstractions.Models
+@using BTCPayServer.Plugins.Monero.Utils
 @using MoneroLikePaymentMethodViewModel = BTCPayServer.Plugins.Monero.Controllers.UIMoneroLikeStoreController.MoneroLikePaymentMethodViewModel
 @using MoneroLikeSettlementThresholdChoice = BTCPayServer.Plugins.Monero.Controllers.UIMoneroLikeStoreController.MoneroLikeSettlementThresholdChoice;
 @model MoneroLikePaymentMethodViewModel
@@ -6,6 +7,7 @@
 @{
     ViewData.SetLayoutModel(new LayoutModel(Model.CryptoCode, StringLocalizer["{0} Settings", Model.CryptoCode]));
     Layout = "_Layout";
+    var backend = MoneroBackendResolver.Resolve();
 }
 
 <partial name="_StatusMessage" />
@@ -22,7 +24,14 @@
                 <ul class="list-group list-group-flush">
                     <li class="list-group-item">Node available: @Model.Summary.DaemonAvailable</li>
                     <li class="list-group-item">Node version: @(Model.Summary.Restricted && string.IsNullOrWhiteSpace(Model.Summary.DaemonVersion) ? "restricted" : Model.Summary.DaemonVersion ?? "")</li>
-                    <li class="list-group-item">Wallet RPC available: @Model.Summary.WalletAvailable</li>
+                    @if (backend == MoneroBackend.LwsServer)
+                    {
+                        <li class="list-group-item">Light wallet server available: @Model.Summary.LwsAvailable</li>
+                    }
+                    else
+                    {
+                        <li class="list-group-item">Wallet RPC available: @Model.Summary.WalletAvailable</li>
+                    }
                     <li class="list-group-item">Last updated: @Model.Summary.UpdatedAt</li>
                     <li class="list-group-item">Synced: @Model.Summary.Synced (@Model.Summary.CurrentHeight / @Model.Summary.TargetHeight)</li>
                 </ul>

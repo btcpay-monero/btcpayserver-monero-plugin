@@ -303,7 +303,7 @@ public class UIMoneroLikeStoreController : Controller
 
     public class MoneroLikePaymentMethodViewModel : IValidatableObject
     {
-        public MoneroRpcProvider.MoneroLikeSummary Summary { get; set; }
+        public MoneroSummary Summary { get; set; }
         public string CryptoCode { get; set; }
         public string NewAccountLabel { get; set; }
         public long AccountIndex { get; set; }

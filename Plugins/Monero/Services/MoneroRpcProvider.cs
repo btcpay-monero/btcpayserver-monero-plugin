@@ -22,19 +22,19 @@ public interface IMoneroRpcProvider
     Task CloseWallet(string cryptoCode);
     Task<string> GetPrimaryAddress(string cryptoCode);
     Task<string> GetPrivateViewKey(string cryptoCode);
-    Task<MoneroRpcProvider.MoneroLikeSummary> UpdateSummary(string cryptoCode);
-    ConcurrentDictionary<string, MoneroRpcProvider.MoneroLikeSummary> Summaries { get; }
+    Task<MoneroSummary> UpdateSummary(string cryptoCode);
+    ConcurrentDictionary<string, MoneroSummary> Summaries { get; }
     ImmutableDictionary<string, MoneroRpcConnection> DaemonRpcClients { get; }
     ImmutableDictionary<string, MoneroRpcConnection> WalletRpcClients { get; }
 }
 
-public class MoneroRpcProvider : IMoneroRpcProvider
+public partial class MoneroRpcProvider : IMoneroRpcProvider
 {
     private readonly MoneroLikeConfiguration _moneroLikeConfiguration;
     private readonly EventAggregator _eventAggregator;
     public ImmutableDictionary<string, MoneroRpcConnection> DaemonRpcClients { get; }
     public ImmutableDictionary<string, MoneroRpcConnection> WalletRpcClients { get; }
-    public ConcurrentDictionary<string, MoneroLikeSummary> Summaries { get; } = new();
+    public ConcurrentDictionary<string, MoneroSummary> Summaries { get; } = new();
 
     public MoneroRpcProvider(MoneroLikeConfiguration moneroLikeConfiguration,
         EventAggregator eventAggregator,
@@ -59,7 +59,7 @@ public class MoneroRpcProvider : IMoneroRpcProvider
         return Summaries.ContainsKey(cryptoCode) && IsAvailable(Summaries[cryptoCode]);
     }
 
-    private bool IsAvailable(MoneroLikeSummary summary)
+    private bool IsAvailable(MoneroSummary summary)
     {
         return summary.Synced &&
                summary.WalletAvailable;
@@ -138,7 +138,7 @@ public class MoneroRpcProvider : IMoneroRpcProvider
             : configItem.WalletDirectory;
     }
 
-    public async Task<MoneroLikeSummary> UpdateSummary(string cryptoCode)
+    public async Task<MoneroSummary> UpdateSummary(string cryptoCode)
     {
         if (!DaemonRpcClients.TryGetValue(cryptoCode.ToUpperInvariant(), out var daemonRpcClient) ||
             !WalletRpcClients.TryGetValue(cryptoCode.ToUpperInvariant(), out var walletRpcClient))
@@ -146,7 +146,7 @@ public class MoneroRpcProvider : IMoneroRpcProvider
             return null;
         }
 
-        var summary = new MoneroLikeSummary();
+        var summary = new MoneroSummary();
         try
         {
             var daemonResult =
@@ -192,19 +192,6 @@ public class MoneroRpcProvider : IMoneroRpcProvider
     public class MoneroDaemonStateChange
     {
         public string CryptoCode { get; set; }
-        public MoneroLikeSummary Summary { get; set; }
-    }
-
-    public class MoneroLikeSummary
-    {
-        public bool Synced { get; set; }
-        public long CurrentHeight { get; set; }
-        public ulong WalletHeight { get; set; }
-        public long TargetHeight { get; set; }
-        public DateTime UpdatedAt { get; set; }
-        public bool DaemonAvailable { get; set; }
-        public string DaemonVersion { get; set; }
-        public bool Restricted { get; set; }
-        public bool WalletAvailable { get; set; }
+        public MoneroSummary Summary { get; set; }
     }
 }

@@ -21,9 +21,9 @@ public class MoneroPluginLwsIntegrationTest(ITestOutputHelper helper) : MoneroLw
         await s.Page.Locator("a.nav-link[href*='monerolike/XMR']").ClickAsync();
 
         var lwsIsAvailable = await s.Page
-            .Locator("li.list-group-item:text('Wallet RPC available: False')")
+            .Locator("li.list-group-item:text('Light wallet server available: False')")
             .InnerTextAsync();
 
-        Assert.Contains("Wallet RPC available: False", lwsIsAvailable);
+        Assert.Contains("Light wallet server available: False", lwsIsAvailable);
     }
 }
