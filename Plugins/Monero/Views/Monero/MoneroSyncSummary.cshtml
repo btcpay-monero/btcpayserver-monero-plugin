@@ -1,9 +1,12 @@
 @using BTCPayServer.Plugins.Monero.Services
+@using BTCPayServer.Plugins.Monero.Utils
 @inject IMoneroRpcProvider MoneroRpcProvider
 @inject SignInManager<ApplicationUser> SignInManager;
 
 @if (SignInManager.IsSignedIn(User) && User.IsInRole(Roles.ServerAdmin) && MoneroRpcProvider.Summaries.Any())
 {
+    var backend = MoneroBackendResolver.Resolve();
+
     @foreach (var summary in MoneroRpcProvider.Summaries)
     {
         @if (summary.Value != null)
@@ -18,6 +21,11 @@
             <ul>
                 <li>Node available: @summary.Value.DaemonAvailable</li>
                 <li>Node version: @(summary.Value.Restricted && string.IsNullOrWhiteSpace(summary.Value.DaemonVersion) ? "restricted" : summary.Value.DaemonVersion ?? "")</li>
+                @if (backend == MoneroBackend.LwsServer)
+                {
+                    <li>Light wallet server available: @summary.Value.LwsAvailable</li>
+                    <li>Light wallet server version: @summary.Value.LwsVersion</li>
+                }
                 <li>Wallet available: @summary.Value.WalletAvailable</li>
                 <li>Last updated: @summary.Value.UpdatedAt</li>
                 <li>Synced: @summary.Value.Synced (@summary.Value.CurrentHeight / @summary.Value.TargetHeight)</li>

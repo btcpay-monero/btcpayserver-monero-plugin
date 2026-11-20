@@ -274,4 +274,24 @@ public static class IntegrationTestUtils
 
         await CopyViewWalletPasswordFileToMoneroRpcDirAsync(viewWalletPasswordFile);
     }
+
+    public static async Task CreateDbRecordWithXmrWallet(string storeId, string address, string viewKey)
+    {
+        var connectionString = RunsInContainer
+            ? "Host=postgres;Port=5432;Username=postgres;Database=btcpayserver"
+            : "Host=localhost;Port=39372;Username=postgres;Database=btcpayserver";
+
+        await using var conn = new NpgsqlConnection(connectionString);
+        await conn.OpenAsync();
+
+        await new NpgsqlCommand($"""
+                                 INSERT INTO "MoneroPlugin"."StoreWallets" ("StoreId", "PrimaryAddress", "PrivateViewKey")
+                                 VALUES ('{storeId}', '{address}', '{viewKey}')
+                                 ON CONFLICT ("StoreId") DO UPDATE
+                                     SET "PrimaryAddress" = EXCLUDED."PrimaryAddress",
+                                         "PrivateViewKey" = EXCLUDED."PrivateViewKey";
+                                 """, conn).ExecuteNonQueryAsync();
+
+        Logger.LogInformation("Inserted XMR wallet record for store {StoreId}", storeId);
+    }
 }

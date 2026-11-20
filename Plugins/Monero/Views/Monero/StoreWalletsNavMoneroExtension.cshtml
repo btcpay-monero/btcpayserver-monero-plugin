@@ -4,26 +4,26 @@
 @inject SignInManager<ApplicationUser> SignInManager;
 @inject MoneroLikeConfiguration MoneroLikeConfiguration;
 @inject IScopeProvider ScopeProvider
-@inject UIMoneroLikeStoreController UiMoneroLikeStore;
+@inject MoneroLikeStoreController MoneroLikeStore;
 @{
     var storeId = ScopeProvider.GetCurrentStoreId();
 }
 @if (SignInManager.IsSignedIn(User) && User.IsInRole(Roles.ServerAdmin) && MoneroLikeConfiguration.MoneroLikeConfigurationItems.Any())
 {
     var store = Context.GetStoreData();
-    var result = await UiMoneroLikeStore.GetVM(store);
+    var result = await MoneroLikeStore.GetVM(store);
 
     foreach (var item in result.Items)
     {
         var isActive = !string.IsNullOrEmpty(storeId) && ViewContext.RouteData.Values.TryGetValue("Controller", out var controller) && controller is not null &&
-                       nameof(UIMoneroLikeStoreController).StartsWith(controller.ToString() ?? string.Empty, StringComparison.InvariantCultureIgnoreCase) &&
+                       nameof(MoneroLikeStoreController).StartsWith(controller.ToString() ?? string.Empty, StringComparison.InvariantCultureIgnoreCase) &&
                        ViewContext.RouteData.Values.TryGetValue("cryptoCode", out var cryptoCode) && cryptoCode is not null && cryptoCode.ToString() == item.CryptoCode;
         <li class="nav-item">
             <a class="nav-link @(isActive ? "active" : "")"
                asp-route-cryptoCode="@item.CryptoCode"
                asp-route-storeId="@storeId"
                asp-action="GetStoreMoneroLikePaymentMethod"
-               asp-controller="UIMoneroLikeStore">
+               asp-controller="MoneroLikeStore">
                 <span class="me-2 btcpay-status btcpay-status--@(item.Enabled ? "enabled" : "pending")"></span>
                 <span>@(item.CryptoCode == "XMR" ? "Monero" : item.CryptoCode + " Wallet")</span>
             </a>

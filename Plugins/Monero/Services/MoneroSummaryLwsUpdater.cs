@@ -10,17 +10,17 @@ using Microsoft.Extensions.Logging;
 
 namespace BTCPayServer.Plugins.Monero.Services;
 
-public class MoneroLikeSummaryUpdaterHostedService : IHostedService
+public class MoneroSummaryLwsUpdater : IHostedService
 {
-    private readonly IMoneroRpcProvider _MoneroRpcProvider;
+    private readonly IMoneroLwsProvider _MoneroLwsProvider;
     private readonly MoneroLikeConfiguration _moneroLikeConfiguration;
 
     public Logs Logs { get; }
 
     private CancellationTokenSource _Cts;
-    public MoneroLikeSummaryUpdaterHostedService(IMoneroRpcProvider moneroRpcProvider, MoneroLikeConfiguration moneroLikeConfiguration, Logs logs)
+    public MoneroSummaryLwsUpdater(IMoneroLwsProvider moneroLwsProvider, MoneroLikeConfiguration moneroLikeConfiguration, Logs logs)
     {
-        _MoneroRpcProvider = moneroRpcProvider;
+        _MoneroLwsProvider = moneroLwsProvider;
         _moneroLikeConfiguration = moneroLikeConfiguration;
         Logs = logs;
     }
@@ -29,22 +29,22 @@ public class MoneroLikeSummaryUpdaterHostedService : IHostedService
         _Cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         foreach (var moneroLikeConfigurationItem in _moneroLikeConfiguration.MoneroLikeConfigurationItems)
         {
-            _ = StartLoop(_Cts.Token, moneroLikeConfigurationItem.Key);
+            _ = StartLoop(moneroLikeConfigurationItem.Key, _Cts.Token);
         }
         return Task.CompletedTask;
     }
 
-    private async Task StartLoop(CancellationToken cancellation, string cryptoCode)
+    private async Task StartLoop(string cryptoCode, CancellationToken cancellation)
     {
-        Logs.PayServer.LogInformation($"Starting listening Monero-like daemons ({cryptoCode})");
+        Logs.PayServer.LogInformation("Starting listening Monero-like daemons ({CryptoCode})", cryptoCode);
         try
         {
             while (!cancellation.IsCancellationRequested)
             {
                 try
                 {
-                    await _MoneroRpcProvider.UpdateSummary(cryptoCode);
-                    if (_MoneroRpcProvider.IsAvailable(cryptoCode))
+                    await _MoneroLwsProvider.UpdateSummary(cryptoCode);
+                    if (_MoneroLwsProvider.IsAvailable(cryptoCode))
                     {
                         await Task.Delay(TimeSpan.FromMinutes(1), cancellation);
                     }
@@ -55,7 +55,7 @@ public class MoneroLikeSummaryUpdaterHostedService : IHostedService
                 }
                 catch (Exception ex) when (!cancellation.IsCancellationRequested)
                 {
-                    Logs.PayServer.LogError(ex, $"Unhandled exception in Summary updater ({cryptoCode})");
+                    Logs.PayServer.LogError(ex, "Unhandled exception in Summary updater ({CryptoCode})", cryptoCode);
                     await Task.Delay(TimeSpan.FromSeconds(10), cancellation);
                 }
             }
