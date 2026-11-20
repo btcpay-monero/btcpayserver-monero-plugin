@@ -32,22 +32,22 @@ namespace BTCPayServer.Plugins.Monero.Controllers;
 [Authorize(AuthenticationSchemes = AuthenticationSchemes.Cookie)]
 [Authorize(Policy = Policies.CanModifyStoreSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
 [Authorize(Policy = Policies.CanModifyServerSettings, AuthenticationSchemes = AuthenticationSchemes.Cookie)]
-public class UIMoneroLikeStoreController : Controller
+public class MoneroLikeStoreController : Controller
 {
     private readonly MoneroLikeConfiguration _MoneroLikeConfiguration;
     private readonly StoreRepository _StoreRepository;
-    private readonly IMoneroRpcProvider _MoneroRpcProvider;
+    private readonly IMoneroLwsProvider _MoneroRpcProvider;
     private readonly IDbContextFactory<MoneroDbContext> _moneroDbFactory;
     private readonly PaymentMethodHandlerDictionary _handlers;
-    private readonly ILogger<UIMoneroLikeStoreController> _logger;
+    private readonly ILogger<MoneroLikeStoreController> _logger;
     private IStringLocalizer StringLocalizer { get; }
 
-    public UIMoneroLikeStoreController(MoneroLikeConfiguration moneroLikeConfiguration,
-        StoreRepository storeRepository, IMoneroRpcProvider moneroRpcProvider,
+    public MoneroLikeStoreController(MoneroLikeConfiguration moneroLikeConfiguration,
+        StoreRepository storeRepository, IMoneroLwsProvider moneroRpcProvider,
         PaymentMethodHandlerDictionary handlers,
         IDbContextFactory<MoneroDbContext> moneroDbFactory,
         IStringLocalizer stringLocalizer,
-        ILogger<UIMoneroLikeStoreController> logger)
+        ILogger<MoneroLikeStoreController> logger)
     {
         _MoneroLikeConfiguration = moneroLikeConfiguration;
         _StoreRepository = storeRepository;
@@ -69,7 +69,7 @@ public class UIMoneroLikeStoreController : Controller
             pair => GetAccounts(pair.Key));
 
         await Task.WhenAll(accountsList.Values);
-        return new MoneroLikePaymentMethodListViewModel()
+        return new MoneroLikePaymentMethodListViewModel
         {
             Items = _MoneroLikeConfiguration.MoneroLikeConfigurationItems.Select(pair =>
                 GetMoneroLikePaymentMethodViewModel(storeData, pair.Key, excludeFilters,
@@ -83,7 +83,8 @@ public class UIMoneroLikeStoreController : Controller
         {
             if (_MoneroRpcProvider.Summaries.TryGetValue(cryptoCode, out var summary) && summary.WalletAvailable)
             {
-                return await _MoneroRpcProvider.WalletRpcClients[cryptoCode].SendCommandAsync<GetAccountsRequest, GetAccountsResponse>("get_accounts", new GetAccountsRequest());
+                //return await _MoneroRpcProvider.WalletRpcClients[cryptoCode].SendCommandAsync<GetAccountsRequest, GetAccountsResponse>("get_accounts", new GetAccountsRequest());
+                return null;
             }
         }
         catch (Exception ex)
@@ -101,9 +102,9 @@ public class UIMoneroLikeStoreController : Controller
     {
         try
         {
-            var address = await _MoneroRpcProvider.GetPrimaryAddress(cryptoCode);
-            var viewKey = await _MoneroRpcProvider.GetPrivateViewKey(cryptoCode);
-            await _moneroDbFactory.SaveDefaultWalletAsync(address, viewKey);
+            // var address = await _MoneroRpcProvider.GetPrimaryAddress(cryptoCode);
+            // var viewKey = await _MoneroRpcProvider.GetPrivateViewKey(cryptoCode);
+            // await _moneroDbFactory.SaveDefaultWalletAsync(address, viewKey);
         }
         catch (Exception ex)
         {
@@ -189,11 +190,11 @@ public class UIMoneroLikeStoreController : Controller
         {
             try
             {
-                var newAccount = await _MoneroRpcProvider.WalletRpcClients[cryptoCode].SendCommandAsync<CreateAccountRequest, CreateAccountResponse>("create_account", new CreateAccountRequest()
-                {
-                    Label = viewModel.NewAccountLabel
-                });
-                viewModel.AccountIndex = newAccount.AccountIndex;
+                // var newAccount = await _MoneroRpcProvider.WalletRpcClients[cryptoCode].SendCommandAsync<CreateAccountRequest, CreateAccountResponse>("create_account", new CreateAccountRequest()
+                // {
+                //     Label = viewModel.NewAccountLabel
+                // });
+                // viewModel.AccountIndex = newAccount.AccountIndex;
             }
             catch (Exception)
             {
@@ -236,13 +237,13 @@ public class UIMoneroLikeStoreController : Controller
                 }
                 try
                 {
-                    await _MoneroRpcProvider.WalletRpcClients[cryptoCode].SendCommandAsync<GenerateFromKeysRequest, GenerateFromKeysResponse>("generate_from_keys", new GenerateFromKeysRequest
-                    {
-                        PrimaryAddress = viewModel.PrimaryAddress,
-                        PrivateViewKey = viewModel.PrivateViewKey,
-                        WalletFileName = "wallet",
-                        RestoreHeight = viewModel.RestoreHeight
-                    });
+                    // await _MoneroRpcProvider.WalletRpcClients[cryptoCode].SendCommandAsync<GenerateFromKeysRequest, GenerateFromKeysResponse>("generate_from_keys", new GenerateFromKeysRequest
+                    // {
+                    //     PrimaryAddress = viewModel.PrimaryAddress,
+                    //     PrivateViewKey = viewModel.PrivateViewKey,
+                    //     WalletFileName = "wallet",
+                    //     RestoreHeight = viewModel.RestoreHeight
+                    // });
 
                     await RecordPrimaryAddressAndViewKeyAsync(cryptoCode);
                 }

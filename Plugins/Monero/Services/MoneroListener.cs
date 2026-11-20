@@ -57,12 +57,12 @@ public class MoneroListener : EventHostedServiceBase
     {
         base.SubscribeToEvents();
         Subscribe<MoneroEvent>();
-        Subscribe<MoneroRpcProvider.MoneroDaemonStateChange>();
+        Subscribe<MoneroDaemonStateChange>();
     }
 
     protected override async Task ProcessEvent(object evt, CancellationToken cancellationToken)
     {
-        if (evt is MoneroRpcProvider.MoneroDaemonStateChange stateChange)
+        if (evt is MoneroDaemonStateChange stateChange)
         {
             if (_moneroRpcProvider.IsAvailable(stateChange.CryptoCode))
             {

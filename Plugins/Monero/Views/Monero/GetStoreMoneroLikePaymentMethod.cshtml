@@ -1,7 +1,7 @@
 @using BTCPayServer.Abstractions.Models
 @using BTCPayServer.Plugins.Monero.Utils
-@using MoneroLikePaymentMethodViewModel = BTCPayServer.Plugins.Monero.Controllers.UIMoneroLikeStoreController.MoneroLikePaymentMethodViewModel
-@using MoneroLikeSettlementThresholdChoice = BTCPayServer.Plugins.Monero.Controllers.UIMoneroLikeStoreController.MoneroLikeSettlementThresholdChoice;
+@using MoneroLikePaymentMethodViewModel = BTCPayServer.Plugins.Monero.Controllers.MoneroLikeStoreController.MoneroLikePaymentMethodViewModel
+@using MoneroLikeSettlementThresholdChoice = BTCPayServer.Plugins.Monero.Controllers.MoneroLikeStoreController.MoneroLikeSettlementThresholdChoice;
 @model MoneroLikePaymentMethodViewModel
 
 @{
@@ -27,11 +27,9 @@
                     @if (backend == MoneroBackend.LwsServer)
                     {
                         <li class="list-group-item">Light wallet server available: @Model.Summary.LwsAvailable</li>
+                        <li class="list-group-item">Light wallet server version: @Model.Summary.LwsVersion</li>
                     }
-                    else
-                    {
-                        <li class="list-group-item">Wallet RPC available: @Model.Summary.WalletAvailable</li>
-                    }
+                    <li class="list-group-item">Wallet available: @Model.Summary.WalletAvailable</li>
                     <li class="list-group-item">Last updated: @Model.Summary.UpdatedAt</li>
                     <li class="list-group-item">Synced: @Model.Summary.Synced (@Model.Summary.CurrentHeight / @Model.Summary.TargetHeight)</li>
                 </ul>

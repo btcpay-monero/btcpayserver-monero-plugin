@@ -14,4 +14,5 @@ public class MoneroSummary
     public bool Restricted { get; set; }
     public bool WalletAvailable { get; set; }
     public bool LwsAvailable { get; set; }
+    public string LwsVersion { get; set; }
 }

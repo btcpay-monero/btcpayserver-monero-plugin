@@ -1,3 +1,8 @@
+using BTCPayServer.Plugins.Monero.Data;
+using BTCPayServer.Plugins.Monero.Services;
+
+using Microsoft.Extensions.Hosting;
+
 using Xunit;
 
 namespace BTCPayServer.Plugins.IntegrationTests.Monero;
@@ -7,23 +12,55 @@ public class MoneroPluginLwsIntegrationTest(ITestOutputHelper helper) : MoneroLw
 {
 
     [Fact]
-    public async Task ShouldLoadViewWalletOnStartUpIfExists()
+    public async Task ShouldSetupStoreWithXmr()
     {
-        const string primaryAddress =
-            "9vGsWQCtxCWBXQBsmiRvPpgzNw6CL5ANqLip4UH8xXW7FrszpZTeAQdPxDp5H1vPnWa6UxFovxqqGBZQUnZ9i9GFBir3eHV";
-        const string privateViewKey = "31d082a3fab955ec6abe83d0edbfae7a0fbae66358230ee3eb01c155c32e880d";
-        await IntegrationTestUtils.CreateTestXmrWalletFilesViaRpc(primaryAddress, privateViewKey, "");
-        await IntegrationTestUtils.CloseTestXmrWalletFilesViaRpc();
         await using var s = CreatePlaywrightTester();
         await s.StartAsync();
         await s.RegisterNewUser(true);
         await s.CreateNewStore();
+
         await s.Page.Locator("a.nav-link[href*='monerolike/XMR']").ClickAsync();
 
         var lwsIsAvailable = await s.Page
-            .Locator("li.list-group-item:text('Light wallet server available: False')")
+            .Locator("li.list-group-item:text('Light wallet server available: True')")
             .InnerTextAsync();
 
-        Assert.Contains("Light wallet server available: False", lwsIsAvailable);
+        Assert.Contains("Light wallet server available: True", lwsIsAvailable);
+    }
+
+    [Fact]
+    public async Task ShouldLoadViewWalletOnStartUpIfExistsInDb()
+    {
+        await using var s = CreatePlaywrightTester();
+        await s.StartAsync();
+        await IntegrationTestUtils.CreateDbRecordWithXmrWallet(MoneroStoreWallet.DefaultKey,
+            "9yEzCbcYdg6MqZ5AkEh8V3YCriyN1tvmtWEHdBEUHkF6D6kN1MMD2Kd2QVWoTY67aNHNYKMUP3xfteLS2QNavJxpJdx6mWj",
+            "1f4668e8c1979b4c7dae13dc149fd95cd7ff2883becffe160c21f9e02c821c08");
+
+        await s.RegisterNewUser(true);
+        await s.CreateNewStore();
+
+        await s.Page.Locator("a.nav-link[href*='monerolike/XMR']").ClickAsync();
+
+        var walletNotAvailable = await s.Page
+            .Locator("li.list-group-item:text('Wallet available: False')")
+            .InnerTextAsync();
+
+        Assert.Contains("Wallet available: False", walletNotAvailable);
+
+        // Re-run the startup logic, now that the record exists
+        var loadUp = s.Server.PayTester
+            .GetService<IEnumerable<IHostedService>>()
+            .OfType<MoneroLwsLoadUpService>()
+            .Single();
+        await loadUp.StartAsync(CancellationToken.None);
+
+        await s.Page.Locator("a.nav-link[href*='monerolike/XMR']").ClickAsync();
+
+        var walletAvailable = await s.Page
+            .Locator("li.list-group-item:text('Wallet available: True')")
+            .InnerTextAsync();
+
+        Assert.Contains("Wallet available: True", walletAvailable);
     }
 }

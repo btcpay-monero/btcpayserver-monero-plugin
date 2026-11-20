@@ -188,10 +188,4 @@ public partial class MoneroRpcProvider : IMoneroRpcProvider
 
         return summary;
     }
-
-    public class MoneroDaemonStateChange
-    {
-        public string CryptoCode { get; set; }
-        public MoneroSummary Summary { get; set; }
-    }
 }
