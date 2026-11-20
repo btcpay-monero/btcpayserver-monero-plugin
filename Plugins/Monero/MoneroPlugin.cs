@@ -27,7 +27,7 @@ namespace BTCPayServer.Plugins.Monero;
 
 public class MoneroPlugin : BaseBTCPayServerPlugin
 {
-    public override Version Version => new(1, 4, 0);
+    public override Version Version => new(1, 5, 0);
 
     public override IBTCPayServerPlugin.PluginDependency[] Dependencies { get; } =
     [
