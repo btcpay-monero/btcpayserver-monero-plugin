@@ -53,8 +53,10 @@ services:
       "--hide-my-port",
       "--non-interactive"
     ]
+    entrypoint: ["/bin/sh", "/blockchain-cache/restore-cache.sh"]
     volumes:
       - xmr_node_1_data:/data
+      - ./blockchain-cache:/blockchain-cache:ro
     ports:
       - "18080:18080"
       - "18081:18081"
@@ -78,8 +80,10 @@ services:
       "--hide-my-port",
       "--non-interactive"
     ]
+    entrypoint: ["/bin/sh", "/blockchain-cache/restore-cache.sh"]
     volumes:
       - xmr_node_2_data:/data
+      - ./blockchain-cache:/blockchain-cache:ro
     ports:
       - "28080:28080"
       - "28081:28081"

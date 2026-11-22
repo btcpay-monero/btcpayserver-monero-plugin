@@ -8,3 +8,4 @@ nuget-packages
 **/.AssemblyAttributes
 btcpay-monero-plugin.sln.DotSettings.user
 .DS_Store
+BTCPayServer.Plugins.IntegrationTests/blockchain-cache/*.mdb.gz

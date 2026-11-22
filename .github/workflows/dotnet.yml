@@ -48,6 +48,21 @@ jobs:
         mkdir -p TestResults/coverage/unit
         mv TestResults/coverage.cobertura.*.xml TestResults/coverage/unit/coverage.cobertura.xml
 
+    - name: Get Monero image
+      id: monero-image
+      run: echo "image=$(grep -m1 -oE 'btcpayserver/monero:[^[:space:]\"]+' BTCPayServer.Plugins.IntegrationTests/docker-compose.yml)" >> "$GITHUB_OUTPUT"
+
+    - name: Restore pre-mined Monero blockchain
+      id: blockchain-cache
+      uses: actions/cache@v5
+      with:
+        path: BTCPayServer.Plugins.IntegrationTests/blockchain-cache/testnet-data.mdb.gz
+        key: monero-testnet-chain-${{ steps.monero-image.outputs.image }}-${{ hashFiles('BTCPayServer.Plugins.IntegrationTests/blockchain-cache/generate-cache.sh') }}
+
+    - name: Generate pre-mined Monero blockchain
+      if: steps.blockchain-cache.outputs.cache-hit != 'true'
+      run: BTCPayServer.Plugins.IntegrationTests/blockchain-cache/generate-cache.sh
+
     - name: Run integration tests
       run: |
         export BTCPAY_NOTIFY_HOST=tests
