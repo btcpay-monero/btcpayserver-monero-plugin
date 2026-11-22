@@ -1,4 +1,3 @@
-using NetworkFeeMode = BTCPayServer.Client.Models.NetworkFeeMode;
 using BTCPayServer.Data;
 using BTCPayServer.Logging;
 using BTCPayServer.Payments;
@@ -15,6 +14,8 @@ using Moq;
 using Newtonsoft.Json.Linq;
 
 using Xunit;
+
+using NetworkFeeMode = BTCPayServer.Client.Models.NetworkFeeMode;
 
 namespace BTCPayServer.Plugins.UnitTests.Monero.Payments;
 

@@ -8,7 +8,6 @@ using BTCPayServer.Abstractions.Constants;
 using BTCPayServer.Abstractions.Extensions;
 using BTCPayServer.Abstractions.Models;
 using BTCPayServer.Client;
-using NetworkFeeMode = BTCPayServer.Client.Models.NetworkFeeMode;
 using BTCPayServer.Data;
 using BTCPayServer.Payments;
 using BTCPayServer.Plugins.Monero.Configuration;
@@ -26,6 +25,8 @@ using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
 
 using Monero.Wallet.Rpc;
+
+using NetworkFeeMode = BTCPayServer.Client.Models.NetworkFeeMode;
 
 namespace BTCPayServer.Plugins.Monero.Controllers;
 
