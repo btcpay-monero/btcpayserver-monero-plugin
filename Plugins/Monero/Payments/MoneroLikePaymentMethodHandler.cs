@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 
+using BTCPayServer.Client.Models;
 using BTCPayServer.Data;
 using BTCPayServer.Payments;
 using BTCPayServer.Plugins.Monero.Services;
@@ -37,10 +38,12 @@ public class MoneroLikePaymentMethodHandler(
             var daemonClient = moneroRpcProvider.DaemonRpcClients[network.CryptoCode];
             try
             {
+                var feeMode = GetNetworkFeeMode(supportedPaymentMethod, context.StoreBlob);
                 context.State = new Prepare
                 {
-                    GetFeeRate =
-                        daemonClient.SendCommandAsync<GetFeeEstimateRequest, GetFeeEstimateResponse>(
+                    GetFeeRate = feeMode == NetworkFeeMode.Never
+                        ? null
+                        : daemonClient.SendCommandAsync<GetFeeEstimateRequest, GetFeeEstimateResponse>(
                             "get_fee_estimate", new GetFeeEstimateRequest()),
                     ReserveAddress = s =>
                         walletClient.SendCommandAsync<CreateAddressRequest, CreateAddressResponse>(
@@ -77,24 +80,38 @@ public class MoneroLikePaymentMethodHandler(
         }
 
         var invoice = context.InvoiceEntity;
-        var feeAtomicRatePerByte = await moneroPrepare.GetFeeRate;
+        var config = ParsePaymentMethodConfig(context.PaymentMethodConfig);
+        var feeMode = GetNetworkFeeMode(config, context.StoreBlob);
         var address = await moneroPrepare.ReserveAddress(invoice.Id);
 
         var details = new MoneroLikeOnChainPaymentMethodDetails
         {
             AccountIndex = moneroPrepare.AccountIndex,
             AddressIndex = address.Index,
-            InvoiceSettledConfirmationThreshold = ParsePaymentMethodConfig(context.PaymentMethodConfig)
-                .InvoiceSettledConfirmationThreshold
+            InvoiceSettledConfirmationThreshold = config.InvoiceSettledConfirmationThreshold
         };
         context.Prompt.Destination = address.Address;
-        // Multiply by 1500 bytes, which is a reasonable approximate weight of a 1-in/2-out Monero transaction.
-        var estimatedFee = feeAtomicRatePerByte.Fee * 1500;
-        // Round up to the nearest multiple of QuantizationMask
-        var quantizedFee = RoundUpToMask(estimatedFee, feeAtomicRatePerByte.QuantizationMask);
-        context.Prompt.PaymentMethodFee = MoneroMoney.Convert(quantizedFee);
+        context.Prompt.PaymentMethodFee = 0m;
+        if (feeMode == NetworkFeeMode.Always ||
+            (feeMode == NetworkFeeMode.MultiplePaymentsOnly && context.Prompt.Calculate().TxCount > 0))
+        {
+            var feeAtomicRatePerByte = await moneroPrepare.GetFeeRate;
+            // Multiply by 1500 bytes, which is a reasonable approximate weight of a 1-in/2-out Monero transaction.
+            var estimatedFee = feeAtomicRatePerByte.Fee * 1500;
+            // Round up to the nearest multiple of QuantizationMask
+            var quantizedFee = RoundUpToMask(estimatedFee, feeAtomicRatePerByte.QuantizationMask);
+            context.Prompt.PaymentMethodFee = MoneroMoney.Convert(quantizedFee);
+        }
         context.Prompt.Details = JObject.FromObject(details, Serializer);
         context.TrackedDestinations.Add(address.Address);
+    }
+
+    /// <summary>
+    /// The payment method's network fee mode, falling back to the store's when the payment method doesn't override it.
+    /// </summary>
+    public static NetworkFeeMode GetNetworkFeeMode(MoneroPaymentPromptDetails config, StoreBlob storeBlob)
+    {
+        return config.NetworkFeeMode ?? storeBlob.NetworkFeeMode;
     }
 
     private static long RoundUpToMask(long value, long mask)

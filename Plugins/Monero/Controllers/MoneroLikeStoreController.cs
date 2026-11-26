@@ -26,6 +26,8 @@ using Microsoft.Extensions.Logging;
 
 using Monero.Wallet.Rpc;
 
+using NetworkFeeMode = BTCPayServer.Client.Models.NetworkFeeMode;
+
 namespace BTCPayServer.Plugins.Monero.Controllers;
 
 [Route("stores/{storeId}/monerolike")]
@@ -156,7 +158,14 @@ public class UIMoneroLikeStoreController : Controller
                 settings != null &&
                 settlementThresholdChoice is MoneroLikeSettlementThresholdChoice.Custom
                     ? settings.InvoiceSettledConfirmationThreshold
-                    : null
+                    : null,
+            NetworkFeeModeChoice = settings?.NetworkFeeMode switch
+            {
+                NetworkFeeMode.MultiplePaymentsOnly => MoneroLikeNetworkFeeModeChoice.MultiplePaymentsOnly,
+                NetworkFeeMode.Always => MoneroLikeNetworkFeeModeChoice.Always,
+                NetworkFeeMode.Never => MoneroLikeNetworkFeeModeChoice.Never,
+                _ => MoneroLikeNetworkFeeModeChoice.StoreFeeMode
+            }
         };
     }
 
@@ -272,6 +281,7 @@ public class UIMoneroLikeStoreController : Controller
             vm.AccountIndex = viewModel.AccountIndex;
             vm.SettlementConfirmationThresholdChoice = viewModel.SettlementConfirmationThresholdChoice;
             vm.CustomSettlementConfirmationThreshold = viewModel.CustomSettlementConfirmationThreshold;
+            vm.NetworkFeeModeChoice = viewModel.NetworkFeeModeChoice;
             return View("/Views/Monero/GetStoreMoneroLikePaymentMethod.cshtml", vm);
         }
 
@@ -286,6 +296,13 @@ public class UIMoneroLikeStoreController : Controller
                 MoneroLikeSettlementThresholdChoice.AtLeastOne => 1,
                 MoneroLikeSettlementThresholdChoice.AtLeastTen => 10,
                 MoneroLikeSettlementThresholdChoice.Custom when viewModel.CustomSettlementConfirmationThreshold is { } custom => custom,
+                _ => null
+            },
+            NetworkFeeMode = viewModel.NetworkFeeModeChoice switch
+            {
+                MoneroLikeNetworkFeeModeChoice.MultiplePaymentsOnly => NetworkFeeMode.MultiplePaymentsOnly,
+                MoneroLikeNetworkFeeModeChoice.Always => NetworkFeeMode.Always,
+                MoneroLikeNetworkFeeModeChoice.Never => NetworkFeeMode.Never,
                 _ => null
             }
         });
@@ -321,6 +338,8 @@ public class UIMoneroLikeStoreController : Controller
         public MoneroLikeSettlementThresholdChoice SettlementConfirmationThresholdChoice { get; set; }
         [Display(Name = "Required Confirmations"), Range(0, 100)]
         public int? CustomSettlementConfirmationThreshold { get; set; }
+        [Display(Name = "Add additional fee (network fee) to invoice …")]
+        public MoneroLikeNetworkFeeModeChoice NetworkFeeModeChoice { get; set; }
 
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
         {
@@ -346,5 +365,17 @@ public class UIMoneroLikeStoreController : Controller
         AtLeastTen,
         [Display(Name = "Custom", Description = "Custom")]
         Custom
+    }
+
+    public enum MoneroLikeNetworkFeeModeChoice
+    {
+        [Display(Name = "Use the store's network fee setting")]
+        StoreFeeMode,
+        [Display(Name = "… only if the customer makes more than one payment for the invoice")]
+        MultiplePaymentsOnly,
+        [Display(Name = "… on every payment")]
+        Always,
+        [Display(Name = "Never add network fee")]
+        Never
     }
 }
