@@ -19,6 +19,8 @@ public class MiningFixture : IAsyncLifetime
         MoneroWalletConfig config = new();
         config.SetSeed("alerts comb talent taxi beer skew mowing lukewarm gifts furnished woven boss thirsty faked jeans upon punch uttered woken typist mohawk enigma mostly noodles boss");
         await CashCowWallet.CreateWallet(config);
+        // The chain may already be mined (blockchain-cache/README.md), so let the wallet catch up before checking its height.
+        await CashCowWallet.Sync(null, null);
         await MineAtLeastToHeight(71);
 
         List<MoneroAccount> moneroAccounts = await CashCowWallet.GetAccounts(true, false, null);
